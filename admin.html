@@ -69,7 +69,7 @@
             <div class="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
             <div>
                 <h4 class="font-bold text-slate-800 text-base" id="loadingTitle">正在處理中</h4>
-                <p class="text-xs text-slate-400 mt-1" id="loadingMessage">正在與本機快取區同步...</p>
+                <p class="text-xs text-slate-400 mt-1" id="loadingMessage">正在更新雲端資料庫...</p>
             </div>
         </div>
     </div>
@@ -108,14 +108,18 @@
                     </h1>
                     <div class="flex items-center gap-2 mt-0.5">
                         <span class="text-[10px] text-slate-400 font-mono tracking-wider">BOARDGAME SYSTEM CONTROL PANEL</span>
-                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[9px] px-2 py-0.5 rounded-full font-bold border border-amber-100">⚙️ 管理者全權端 (具備讀寫權限)</span>
+                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[9px] px-2 py-0.5 rounded-full font-bold border border-amber-100">⚙️ 管理者全權端</span>
                     </div>
                 </div>
             </div>
 
             <div class="flex items-center gap-2">
                 <input type="file" id="csvFileInput" accept=".csv" class="hidden" />
-                <span class="text-xs text-brand-700 bg-brand-50 px-3 py-1.5 rounded-full font-bold">網域自動同步啟用</span>
+                <!-- 狀態指示燈：切換雲端模式與本地離線快取模式 -->
+                <span id="syncModeIndicator" class="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>正在偵測同步狀態...</span>
+                </span>
             </div>
         </div>
     </header>
@@ -210,7 +214,7 @@
                             </div>
                         </div>
                         <div class="mt-8 pt-6 border-t border-slate-100 text-center">
-                            <span class="text-[11px] text-slate-400">本地資料同步：<span class="text-brand-600 font-semibold">自動分享 (LocalStorage) 💾</span></span>
+                            <span class="text-[11px] text-slate-400">系統資料狀態：<span id="syncModeLabelText" class="text-amber-600 font-semibold">本地離線快取</span></span>
                         </div>
                     </div>
 
@@ -386,7 +390,7 @@
             <div class="bg-gradient-to-r from-brand-600 to-teal-700 p-6 text-white flex items-center justify-between">
                 <div>
                     <h3 class="font-bold text-lg" id="modalAddTitle">新增教育桌遊館藏</h3>
-                    <p class="text-xs text-brand-100 mt-1">手動填寫欄位資訊，資料會自動同步至同網域查詢端網頁</p>
+                    <p class="text-xs text-brand-100 mt-1">手動填寫欄位資訊，資料會自動同步至雲端資料庫</p>
                 </div>
                 <button onclick="closeAddGameModal()" class="text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors">✕</button>
             </div>
@@ -542,7 +546,7 @@
     <footer class="bg-white border-t border-slate-200 py-6 mt-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <p class="text-xs text-slate-400">學習中心教育桌遊館藏與借閱管理系統 (管理者全權端) © 2026. All rights reserved.</p>
-            <p class="text-[10px] text-slate-300 mt-1">智慧雲端同步對齊 💾 資料異動時將直接安全保存於雲端</p>
+            <p class="text-[10px] text-slate-300 mt-1">智慧雲端同步對齊 💾 資料異動時將直接安全保存</p>
         </div>
     </footer>
 
@@ -553,21 +557,31 @@
 
         // 讀取環境變數配置
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'boardgame-library-default';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: "",
-                authDomain: "",
-                projectId: "",
-                storageBucket: "",
-                messagingSenderId: "",
-                appId: ""
-            };
+        let firebaseConfig = {
+            apiKey: "",
+            authDomain: "",
+            projectId: "",
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: ""
+        };
 
-        // 初始化雲端服務
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                firebaseConfig = JSON.parse(__firebase_config);
+            }
+        } catch (e) {
+            console.warn("無法解析雲端設定檔，將預設降級為離線本地模式。");
+        }
+
+        // 判斷是否啟用 Firebase 雲端同步
+        let useCloud = false;
+        let db = null;
+        let auth = null;
+
+        if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.apiKey !== "") {
+            useCloud = true;
+        }
 
         const MOCK_CSV_3_DATA = [
             { code: "LE-01", name: "拉密 (Rummikub)", category: "邏輯思考", players: "2-4人", location: "A區-01櫃", intro: "經典數字排列遊戲。結合了拉米紙牌與麻將玩法，考驗排列組合與邏輯思考能力，被誉為魔力橋。", components: "104張數字牌 (1-13四色各2套)、2張百搭牌、4個底架架子、繁體中文說明書。", flow: "1.每人抽14張手牌。 2.首出需符合「破冰」規則(數字總和達30分以上)。 3.後續出牌可利用桌面現有牌組拆解重組。 4.最先出完手牌者獲勝。", features: "規則好懂上手快、千變萬化無冷場、能高度鍛鍊玩家的敏捷心算與空間聯想重組力。", status: "可借用" },
@@ -581,7 +595,7 @@
             { code: "LE-09", name: "誰是牛頭王 (Take 6!)", category: "數學思維", players: "2-10人", location: "C區-03櫃", intro: "數字接龍博弈遊戲，暗中出牌依照數字大小排入。", components: "104張牛頭卡牌。", flow: "1.每人10張牌。 2.同時出牌揭曉，依序排入桌面。 3.放至第6張者收走整列扣分。", features: "計算與反轉，培養數值敏感度與機率直覺。", status: "可借用" },
             { code: "LE-10", name: "疊杯大賽 (Speed Cups)", category: "手眼協調", players: "2-4人", location: "A區-04櫃", intro: "根據提示快速排列五色杯子並按鈴搶答！", components: "20個五色杯、24張任務卡、1個搶答金屬按鈴。", flow: "1.翻開任務卡。 2.依圖像橫向或縱向快速疊/排杯子。 3.最快並按鈴者得卡。", features: "手眼腦協調訓練，趣味競技感拉滿。", status: "可借用" },
             { code: "LE-11", name: "數字急轉彎 (7 Ate 9)", category: "快速計算", players: "2-4人", location: "B區-04櫃", intro: "加減法極速出牌，沒有回合限制的心算大作戰。", components: "73張數字運算卡牌。", flow: "1.中央置題庫牌，其餘均分。 2.心算「中央牌大數字 ± 小數字」並搶先出牌。", features: "高強度基礎心算與敏捷反應練習。", status: "可借用" },
-            { code: "LE-12", name: "平衡積木 (Jenga)", category: "肢體動覺", players: "2-8人", location: "C區-04櫃", intro: "重力與力量控制，抽積木疊到頂端不倒塌。", components: "54條原木平衡積木、說明書。", flow: "1.輪流單手抽出一根積木並疊至頂端。 2.使木塔倒塌者即輸。", features: "細微肌肉力量控管，高抗壓專注思考。", status: "可借用" }
+            { code: "LE-12", name: "平衡積木 (Jenga)", category: "肢體動覺", players: "2-8人", location: "C區-04櫃", intro: "重力與力量控制，抽積木疊到頂端不倒塌。", components: "54條原木平衡積木、說明書。", flow: "1.輪流單手抽出一根積木並疊至頂端. 2.使木塔倒塌者即輸。", features: "細微肌肉力量控管，高抗壓專注思考。", status: "可借用" }
         ];
 
         let games = [];
@@ -596,23 +610,51 @@
         let selectedLoanForReturn = null;
         let selectedReturnCondition = '良好';
 
-        // 雲端帳戶認證 (RULE 3)
         async function startAdminCloudSync() {
+            const indicator = document.getElementById('syncModeIndicator');
+            const modeLabel = document.getElementById('syncModeLabelText');
+
+            if (!useCloud) {
+                // 本地離線模式
+                indicator.className = "text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>💾 本地離線快取</span>`;
+                if (modeLabel) modeLabel.innerText = "本地離線快取";
+                loadLocalBackup();
+                return;
+            }
+
             try {
+                const firebaseApp = initializeApp(firebaseConfig);
+                db = getFirestore(firebaseApp);
+                auth = getAuth(firebaseApp);
+
+                let user;
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+                    const res = await signInWithCustomToken(auth, __initial_auth_token);
+                    user = res.user;
                 } else {
-                    await signInAnonymously(auth);
+                    const res = await signInAnonymously(auth);
+                    user = res.user;
+                }
+
+                if (user) {
+                    indicator.className = "text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
+                    indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>☁️ 雲端即時同步中</span>`;
+                    if (modeLabel) modeLabel.innerText = "雲端即時同步";
+                    setupFirebaseListeners();
                 }
             } catch (err) {
-                console.warn("管理端離線模式啟用");
+                console.error("Firebase 初始化失敗，安全自動降級至離線本地模式:", err);
+                useCloud = false;
+                indicator.className = "text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>💾 本地離線快取</span>`;
+                if (modeLabel) modeLabel.innerText = "本地離線快取";
+                loadLocalBackup();
             }
         }
 
-        // 監聽雲端即時館藏異動
-        onAuthStateChanged(auth, (user) => {
-            if (!user) return;
-
+        function setupFirebaseListeners() {
+            // 監聽雲端即時館藏異動
             const gamesCol = collection(db, 'artifacts', appId, 'public', 'data', 'games');
             onSnapshot(gamesCol, (snapshot) => {
                 const tempGames = [];
@@ -625,11 +667,14 @@
                 } else {
                     games = tempGames.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                 }
+                // 備份到本地，供唯讀端載入
+                localStorage.setItem('lc_games_data', JSON.stringify(games));
                 updateAllUI();
             }, (err) => {
                 console.error("館藏載入失敗:", err);
             });
 
+            // 監聽雲端即時借閱合約異動
             const loansCol = collection(db, 'artifacts', appId, 'public', 'data', 'loans');
             onSnapshot(loansCol, (snapshot) => {
                 const tempLoans = [];
@@ -637,11 +682,27 @@
                     tempLoans.push({ ...doc.data(), id: doc.id });
                 });
                 loans = tempLoans.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                // 備份到本地
+                localStorage.setItem('lc_loans_data', JSON.stringify(loans));
                 updateAllUI();
             }, (err) => {
                 console.error("借閱單載入失敗:", err);
             });
-        });
+        }
+
+        function loadLocalBackup() {
+            const storedGames = localStorage.getItem('lc_games_data');
+            const storedLoans = localStorage.getItem('lc_loans_data');
+
+            if (!storedGames || JSON.parse(storedGames).length === 0) {
+                games = JSON.parse(JSON.stringify(MOCK_CSV_3_DATA));
+                localStorage.setItem('lc_games_data', JSON.stringify(games));
+            } else {
+                games = JSON.parse(storedGames);
+            }
+            loans = storedLoans ? JSON.parse(storedLoans) : [];
+            updateAllUI();
+        }
 
         function updateAllUI() {
             document.getElementById('todayLabel').innerText = `今日日期: ${getTodayString()}`;
@@ -949,7 +1010,7 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            showLoading("讀取檔案中", "正在為您解析並上傳至雲端...");
+            showLoading("讀取檔案中", "正在為您解析並上傳資料庫...");
 
             const reader = new FileReader();
             reader.onload = async function(evt) {
@@ -979,6 +1040,7 @@
                         return;
                     }
 
+                    const imported = [];
                     const promises = json.map((row, index) => {
                         const findVal = (keys) => {
                             const foundKey = Object.keys(row).find(k => {
@@ -1004,9 +1066,7 @@
                         if (!code && !name) return null;
 
                         const gameId = code || `LE-${100 + index}`;
-                        const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId);
-                        
-                        return setDoc(gameDocRef, {
+                        const gameData = {
                             id: gameId,
                             code: gameId,
                             name: name || '未命名桌遊',
@@ -1020,12 +1080,29 @@
                             features: features || '',
                             note: intro || '',
                             createdAt: Date.now() + index
-                        });
+                        };
+
+                        imported.push(gameData);
+
+                        if (useCloud && db) {
+                            const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId);
+                            return setDoc(gameDocRef, gameData);
+                        }
+                        return null;
                     }).filter(p => p !== null);
 
-                    await Promise.all(promises);
+                    if (useCloud) {
+                        await Promise.all(promises);
+                    } else {
+                        // 本地更新
+                        const newGamesMap = new Map(games.map(g => [g.code, g]));
+                        imported.forEach(g => newGamesMap.set(g.code, g));
+                        games = Array.from(newGamesMap.values());
+                        localStorage.setItem('lc_games_data', JSON.stringify(games));
+                    }
+
                     hideLoading();
-                    showToast(`成功同步匯入並上傳至雲端數據庫！`);
+                    showToast(`成功同步匯入並上傳資料庫！`);
                     switchAdminTab('games');
                 } catch (err) {
                     console.error("匯入失敗:", err);
@@ -1056,7 +1133,7 @@
             document.getElementById('newGamePlayers').value = game.players || '';
             document.getElementById('newGameLocation').value = game.location || '';
             
-            document.getElementById('newGameIntro').value = game.intro || '';
+            document.getElementById('newGameIntro').value = game.intro || game.note || '';
             document.getElementById('newGameComponents').value = game.components || '';
             document.getElementById('newGameFlow').value = game.flow || '';
             document.getElementById('newGameFeatures').value = game.features || '';
@@ -1085,44 +1162,53 @@
             const flow = document.getElementById('newGameFlow').value.trim();
             const features = document.getElementById('newGameFeatures').value.trim();
 
-            if (!auth.currentUser) {
-                showToast("雲端連線未就緒", "error");
-                return;
-            }
-
             if (games.some(g => g.code === code && g.id !== editingId)) {
                 showToast("此館藏編號已重複！", "error");
                 return;
             }
 
-            showLoading("雲端儲存中", "正在將數據同步至雲端...");
+            showLoading("儲存中", "正在同步至資料庫...");
+
+            const gameObj = {
+                id: code,
+                code,
+                name,
+                category,
+                players,
+                location,
+                intro,
+                components,
+                flow,
+                features,
+                note: intro,
+                status: editingId ? (games.find(g => g.id === editingId)?.status || '可借用') : '可借用',
+                createdAt: editingId ? (games.find(g => g.id === editingId)?.createdAt || Date.now()) : Date.now()
+            };
 
             try {
-                const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', code);
-                await setDoc(gameDocRef, {
-                    id: code,
-                    code,
-                    name,
-                    category,
-                    players,
-                    location,
-                    intro,
-                    components,
-                    flow,
-                    features,
-                    note: intro,
-                    status: editingId ? (games.find(g => g.id === editingId)?.status || '可借用') : '可借用',
-                    createdAt: editingId ? (games.find(g => g.id === editingId)?.createdAt || Date.now()) : Date.now()
-                });
+                if (useCloud && db) {
+                    const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', code);
+                    await setDoc(gameDocRef, gameObj);
 
-                if (editingId && editingId !== code) {
-                    const oldDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', editingId);
-                    await deleteDoc(oldDocRef);
+                    if (editingId && editingId !== code) {
+                        const oldDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', editingId);
+                        await deleteDoc(oldDocRef);
+                    }
+                } else {
+                    // 本地寫入
+                    const idx = games.findIndex(g => g.id === editingId);
+                    if (idx > -1) {
+                        games[idx] = gameObj;
+                    } else {
+                        games.unshift(gameObj);
+                    }
+                    localStorage.setItem('lc_games_data', JSON.stringify(games));
+                    updateAllUI();
                 }
 
                 hideLoading();
                 closeAddGameModal();
-                showToast("館藏資料已成功雲端儲存！");
+                showToast("館藏資料已成功儲存！");
             } catch (err) {
                 hideLoading();
                 showToast("同步失敗: " + err.message, "error");
@@ -1136,12 +1222,18 @@
                 return;
             }
 
-            const confirmed = await customConfirm('確認刪除此項目？', `確認要將「${name}」從雲端永久移除嗎？`);
+            const confirmed = await customConfirm('確認刪除此項目？', `確認要將「${name}」從資料庫永久移除嗎？`);
             if (confirmed) {
                 try {
-                    showLoading("雲端刪除中", "正在從資料庫移除...");
-                    const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', id);
-                    await deleteDoc(gameDocRef);
+                    showLoading("刪除中", "正在從資料庫移除...");
+                    if (useCloud && db) {
+                        const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', id);
+                        await deleteDoc(gameDocRef);
+                    } else {
+                        games = games.filter(g => g.id !== id);
+                        localStorage.setItem('lc_games_data', JSON.stringify(games));
+                        updateAllUI();
+                    }
                     hideLoading();
                     showToast(`已刪除「${name}」。`);
                 } catch (err) {
@@ -1177,7 +1269,7 @@
 
         window.handleBorrowGame = async function(e) {
             e.preventDefault();
-            if (!selectedGameForBorrow || !auth.currentUser) return;
+            if (!selectedGameForBorrow) return;
 
             const borrowerName = document.getElementById('borrowerName').value.trim();
             const borrowerPhone = document.getElementById('borrowerPhone').value.trim();
@@ -1186,27 +1278,36 @@
             const note = document.getElementById('borrowNote').value.trim();
 
             const loanId = `L_${Date.now()}`;
-            showLoading("借出登記中", "正在更新雲端合約與在庫狀態...");
+            showLoading("借出登記中", "正在更新合約與在庫狀態...");
+
+            const loanObj = {
+                id: loanId,
+                gameId: selectedGameForBorrow.id,
+                gameName: selectedGameForBorrow.name,
+                gameCode: selectedGameForBorrow.code,
+                borrowerName, borrowerPhone, borrowDate, dueDate,
+                returnDate: null,
+                status: '出借中',
+                condition: null,
+                note,
+                createdAt: Date.now()
+            };
 
             try {
-                // 1. 創立借閱合約 (RULE 1)
-                const loanDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'loans', loanId);
-                await setDoc(loanDocRef, {
-                    id: loanId,
-                    gameId: selectedGameForBorrow.id,
-                    gameName: selectedGameForBorrow.name,
-                    gameCode: selectedGameForBorrow.code,
-                    borrowerName, borrowerPhone, borrowDate, dueDate,
-                    returnDate: null,
-                    status: '出借中',
-                    condition: null,
-                    note,
-                    createdAt: Date.now()
-                });
+                if (useCloud && db) {
+                    const loanDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'loans', loanId);
+                    await setDoc(loanDocRef, loanObj);
 
-                // 2. 修改館藏狀態為出借中
-                const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', selectedGameForBorrow.id);
-                await updateDoc(gameDocRef, { status: '出借中' });
+                    const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', selectedGameForBorrow.id);
+                    await updateDoc(gameDocRef, { status: '出借中' });
+                } else {
+                    // 本地離線
+                    loans.unshift(loanObj);
+                    games = games.map(g => g.id === selectedGameForBorrow.id ? { ...g, status: '出借中' } : g);
+                    localStorage.setItem('lc_loans_data', JSON.stringify(loans));
+                    localStorage.setItem('lc_games_data', JSON.stringify(games));
+                    updateAllUI();
+                }
 
                 hideLoading();
                 closeBorrowModal();
@@ -1261,7 +1362,7 @@
 
         window.handleReturnGame = async function(e) {
             e.preventDefault();
-            if (!selectedLoanForReturn || !auth.currentUser) return;
+            if (!selectedLoanForReturn) return;
 
             const today = getTodayString();
             const noteInput = document.getElementById('returnNote').value.trim();
@@ -1273,24 +1374,37 @@
                 : `歸還物況備註: ${noteInput}`;
 
             closeReturnModal();
-            showLoading("辦理歸還中", "正在處理雲端入庫歸檔...");
+            showLoading("辦理歸還中", "正在處理入庫歸檔...");
 
             try {
-                // 1. 更新合約狀態
-                const loanDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'loans', targetLoanId);
-                await updateDoc(loanDocRef, {
-                    returnDate: today,
-                    status: '已歸還',
-                    condition: selectedReturnCondition,
-                    note: updatedLoanNote
-                });
+                if (useCloud && db) {
+                    const loanDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'loans', targetLoanId);
+                    await updateDoc(loanDocRef, {
+                        returnDate: today,
+                        status: '已歸還',
+                        condition: selectedReturnCondition,
+                        note: updatedLoanNote
+                    });
 
-                // 2. 更新桌遊狀態
-                const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', targetGameId);
-                await updateDoc(gameDocRef, { status: '可借用' });
+                    const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', targetGameId);
+                    await updateDoc(gameDocRef, { status: '可借用' });
+                } else {
+                    // 本地離線
+                    loans = loans.map(l => l.id === targetLoanId ? {
+                        ...l,
+                        returnDate: today,
+                        status: '已歸還',
+                        condition: selectedReturnCondition,
+                        note: updatedLoanNote
+                    } : l);
+                    games = games.map(g => g.id === targetGameId ? { ...g, status: '可借用' } : g);
+                    localStorage.setItem('lc_loans_data', JSON.stringify(loans));
+                    localStorage.setItem('lc_games_data', JSON.stringify(games));
+                    updateAllUI();
+                }
 
                 hideLoading();
-                showToast(`館藏歸還成功，雲端已安全同步對齊！`);
+                showToast(`館藏歸還成功！`);
             } catch (err) {
                 hideLoading();
                 showToast("歸還入庫失敗: " + err.message, "error");
@@ -1341,30 +1455,36 @@
             }
 
             const confirmed = await customConfirm(
-                '🗑️ 確認清除所有雲端借閱紀錄？', 
-                '此操作不可回復。清除後所有出借中的桌遊將自動在雲端重設為「可借用」！'
+                '🗑️ 確認清除所有借閱紀錄？', 
+                '此操作不可回復。清除後所有出借中的桌遊將自動重設為「可借用」！'
             );
             if (!confirmed) return;
 
-            showLoading("清理紀錄中", "正在重置雲端借閱合約資料庫...");
+            showLoading("清理紀錄中", "正在重置借閱合約資料庫...");
             try {
-                // 1. 刪除所有 loans 雲端文檔
-                const deletePromises = loans.map(l => {
-                    return deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id));
-                });
-                await Promise.all(deletePromises);
+                if (useCloud && db) {
+                    const deletePromises = loans.map(l => {
+                        return deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id));
+                    });
+                    await Promise.all(deletePromises);
 
-                // 2. 將所有桌遊回置為可借用
-                const gamePromises = games.map(g => {
-                    if (g.status === '出借中') {
-                        return updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', g.id), { status: '可借用' });
-                    }
-                    return null;
-                }).filter(p => p !== null);
-                await Promise.all(gamePromises);
+                    const gamePromises = games.map(g => {
+                        if (g.status === '出借中') {
+                            return updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', g.id), { status: '可借用' });
+                        }
+                        return null;
+                    }).filter(p => p !== null);
+                    await Promise.all(gamePromises);
+                } else {
+                    loans = [];
+                    games = games.map(g => ({ ...g, status: '可借用' }));
+                    localStorage.setItem('lc_loans_data', JSON.stringify([]));
+                    localStorage.setItem('lc_games_data', JSON.stringify(games));
+                    updateAllUI();
+                }
 
                 hideLoading();
-                showToast("所有雲端歷史合約紀錄已完全抹除！");
+                showToast("所有歷史合約紀錄已完全抹除！");
             } catch (err) {
                 hideLoading();
                 showToast("重置失敗: " + err.message, "error");
@@ -1372,23 +1492,29 @@
         };
 
         window.seedDefaultCSVData = async function() {
-            const confirmed = await customConfirm('是否載入模擬資料？', '此操作將直接預載 12 款主打的教育級桌遊並寫入雲端數據庫。');
+            const confirmed = await customConfirm('是否載入模擬資料？', '此操作將直接預載 12 款主打的教育級桌遊並寫入資料庫。');
             if (!confirmed) return;
 
-            showLoading("雲端寫入中", "正在批次同步模擬館藏...");
+            showLoading("寫入中", "正在批次同步模擬館藏...");
             try {
-                const promises = MOCK_CSV_3_DATA.map((g, i) => {
-                    const gameId = g.code;
-                    const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId);
-                    return setDoc(gameDocRef, {
-                        ...g,
-                        id: gameId,
-                        createdAt: Date.now() + i
+                if (useCloud && db) {
+                    const promises = MOCK_CSV_3_DATA.map((g, i) => {
+                        const gameId = g.code;
+                        const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId);
+                        return setDoc(gameDocRef, {
+                            ...g,
+                            id: gameId,
+                            createdAt: Date.now() + i
+                        });
                     });
-                });
-                await Promise.all(promises);
+                    await Promise.all(promises);
+                } else {
+                    games = JSON.parse(JSON.stringify(MOCK_CSV_3_DATA));
+                    localStorage.setItem('lc_games_data', JSON.stringify(games));
+                    updateAllUI();
+                }
                 hideLoading();
-                showToast("成功在雲端資料庫中預載 12 筆模擬資料！");
+                showToast("成功在資料庫中預載 12 筆模擬資料！");
             } catch (err) {
                 hideLoading();
                 showToast("寫入失敗: " + err.message, "error");
@@ -1398,27 +1524,31 @@
         window.clearAllLocalData = async function() {
             const confirmed = await customConfirm(
                 '🗑️ 確認清除所有資料？', 
-                '確認要完全抹除雲端上的【館藏目錄】與【歷史合約紀錄】嗎？'
+                '確認要完全抹除資料庫上的【館藏目錄】與【歷史合約紀錄】嗎？'
             );
             if (!confirmed) return;
 
-            showLoading("抹除雲端資料中", "正在清空專案對應之雲端資料庫...");
+            showLoading("抹除資料中", "正在清空專案資料庫...");
             try {
-                // 清空館藏
-                const deleteGames = games.map(g => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', g.id)));
-                // 清空借還合約
-                const deleteLoans = loans.map(l => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id)));
-                
-                await Promise.all([...deleteGames, ...deleteLoans]);
+                if (useCloud && db) {
+                    const deleteGames = games.map(g => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', g.id)));
+                    const deleteLoans = loans.map(l => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id)));
+                    await Promise.all([...deleteGames, ...deleteLoans]);
+                } else {
+                    games = [];
+                    loans = [];
+                    localStorage.setItem('lc_games_data', JSON.stringify([]));
+                    localStorage.setItem('lc_loans_data', JSON.stringify([]));
+                    updateAllUI();
+                }
                 hideLoading();
-                showToast("雲端資料庫已順利清空！");
+                showToast("資料庫已順利清空！");
             } catch (err) {
                 hideLoading();
                 showToast("清空失敗: " + err.message, "error");
             }
         };
 
-        // 工具函數
         function getTodayString() {
             return new Date().toISOString().split('T')[0];
         }
@@ -1483,7 +1613,7 @@
             });
         }
 
-        // 綁定檔案監聽與啟動雲端同步
+        // 綁定檔案監聽與啟動
         document.getElementById('csvFileInput').addEventListener('change', handleCsvImport);
         startAdminCloudSync();
     </script>
