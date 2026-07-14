@@ -87,8 +87,13 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <button onclick="loadLocalData(true)" class="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-2 rounded-xl transition-all font-semibold shadow-sm" title="重新載入本機最新資料">
-                    🔄 重新整理
+                <!-- 狀態指示燈：切換雲端模式與本地離線快取模式 -->
+                <span id="syncModeIndicator" class="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>正在偵測同步狀態...</span>
+                </span>
+                <button onclick="loadLocalData(true)" class="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-2 rounded-xl transition-all font-semibold shadow-sm" title="重新整理資料">
+                    🔄 整理
                 </button>
             </div>
         </div>
@@ -290,21 +295,31 @@
 
         // 讀取環境變數配置
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'boardgame-library-default';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: "",
-                authDomain: "",
-                projectId: "",
-                storageBucket: "",
-                messagingSenderId: "",
-                appId: ""
-            };
+        let firebaseConfig = {
+            apiKey: "",
+            authDomain: "",
+            projectId: "",
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: ""
+        };
 
-        // 初始化雲端服務
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                firebaseConfig = JSON.parse(__firebase_config);
+            }
+        } catch (e) {
+            console.warn("無法解析雲端設定檔，將預設降級為離線本地模式。");
+        }
+
+        // 判斷是否啟用 Firebase 雲端同步
+        let useCloud = false;
+        let db = null;
+        let auth = null;
+
+        if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.apiKey !== "") {
+            useCloud = true;
+        }
 
         const MOCK_CSV_3_DATA = [
             { code: "LE-01", name: "拉密 (Rummikub)", category: "邏輯思考", players: "2-4人", location: "A區-01櫃", intro: "經典數字排列遊戲。結合了拉米紙牌與麻將玩法，考驗排列組合與邏輯思考能力，被誉為魔力橋。", components: "104張數字牌 (1-13四色各2套)、2張百搭牌、4個底架架子、繁體中文說明書。", flow: "1.每人抽14張手牌。 2.首出需符合「破冰」規則(數字總和達30分以上)。 3.後續出牌可利用桌面現有牌組拆解重組。 4.最先出完手牌者獲勝。", features: "規則好懂上手快、千變萬化無冷場、能高度鍛鍊玩家的敏捷心算與空間聯想重組力。", status: "可借用" },
@@ -321,25 +336,46 @@
         let viewCategoryFilter = '';
         let viewStatusFilter = '';
 
-        // 雲端安全登入與即時接軌
         async function startCloudSync() {
+            const indicator = document.getElementById('syncModeIndicator');
+
+            if (!useCloud) {
+                // 本地離線模式
+                indicator.className = "text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>💾 本地離線快取</span>`;
+                loadLocalBackup();
+                return;
+            }
+
             try {
-                // 優先使用自訂金鑰登入，其次匿名安全登入
+                const firebaseApp = initializeApp(firebaseConfig);
+                db = getFirestore(firebaseApp);
+                auth = getAuth(firebaseApp);
+
+                let user;
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+                    const res = await signInWithCustomToken(auth, __initial_auth_token);
+                    user = res.user;
                 } else {
-                    await signInAnonymously(auth);
+                    const res = await signInAnonymously(auth);
+                    user = res.user;
+                }
+
+                if (user) {
+                    indicator.className = "text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
+                    indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>☁️ 雲端即時同步中</span>`;
+                    setupFirebaseListeners();
                 }
             } catch (err) {
-                console.warn("雲端登入提示: 採用安全模擬離線快取載入。");
-                loadFallbackOfflineData();
+                console.error("Firebase 初始化失敗，安全自動降級至離線本地模式:", err);
+                useCloud = false;
+                indicator.className = "text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>💾 本地離線快取</span>`;
+                loadLocalBackup();
             }
         }
 
-        // 啟用雲端即時監聽數據 (RULE 1 & 2 & 3 符合)
-        onAuthStateChanged(auth, (user) => {
-            if (!user) return;
-
+        function setupFirebaseListeners() {
             // 監聽雲端館藏數據
             const gamesCol = collection(db, 'artifacts', appId, 'public', 'data', 'games');
             onSnapshot(gamesCol, (snapshot) => {
@@ -348,12 +384,12 @@
                     tempGames.push({ ...doc.data(), id: doc.id });
                 });
                 
-                // 若雲端完全為空，主動呈現預置範例
                 if (tempGames.length === 0) {
                     games = MOCK_CSV_3_DATA.map((g, i) => ({ ...g, id: g.code }));
                 } else {
                     games = tempGames;
                 }
+                localStorage.setItem('lc_games_data', JSON.stringify(games));
                 updateUIAndTimestamp();
             }, (err) => {
                 console.error("館藏同步失敗:", err);
@@ -367,14 +403,23 @@
                     tempLoans.push({ ...doc.data(), id: doc.id });
                 });
                 loans = tempLoans;
+                localStorage.setItem('lc_loans_data', JSON.stringify(loans));
                 updateUIAndTimestamp();
             }, (err) => {
                 console.error("借閱合約同步失敗:", err);
             });
-        });
+        }
 
-        function loadFallbackOfflineData() {
-            games = MOCK_CSV_3_DATA.map((g, i) => ({ ...g, id: g.code }));
+        function loadLocalBackup() {
+            const storedGames = localStorage.getItem('lc_games_data');
+            const storedLoans = localStorage.getItem('lc_loans_data');
+
+            if (!storedGames || JSON.parse(storedGames).length === 0) {
+                games = MOCK_CSV_3_DATA.map((g, i) => ({ ...g, id: g.code }));
+            } else {
+                games = JSON.parse(storedGames);
+            }
+            loans = storedLoans ? JSON.parse(storedLoans) : [];
             updateUIAndTimestamp();
         }
 
@@ -382,7 +427,7 @@
             const now = new Date();
             const timeStr = now.toTimeString().split(' ')[0];
             const syncTimeEl = document.getElementById('syncStatusTime');
-            if (syncTimeEl) syncTimeEl.innerText = `雲端即時同步中: ${timeStr}`;
+            if (syncTimeEl) syncTimeEl.innerText = `最後更新: ${timeStr}`;
             updateUI();
         }
 
@@ -626,7 +671,12 @@
         };
 
         window.loadLocalData = function(manualRefresh = false) {
-            updateUIAndTimestamp();
+            if (useCloud) {
+                startCloudSync();
+            } else {
+                loadLocalBackup();
+            }
+
             if (manualRefresh) {
                 let container = document.getElementById('publicToastContainer');
                 if (!container) {
@@ -642,7 +692,7 @@
                     <div class="flex-shrink-0 p-1.5 bg-brand-50 rounded-lg">
                         <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     </div>
-                    <div class="text-xs sm:text-sm font-semibold text-slate-700">🔄 雲端數據已對齊同步！</div>
+                    <div class="text-xs sm:text-sm font-semibold text-slate-700">🔄 資料已完成即時對齊更新！</div>
                 `;
                 container.appendChild(toast);
 
@@ -654,7 +704,7 @@
             }
         };
 
-        // 啟動雲端同步
+        // 啟動雲端與本地同步判定
         startCloudSync();
     </script>
 </body>
