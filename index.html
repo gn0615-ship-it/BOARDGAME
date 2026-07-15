@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>學習中心教育桌遊館藏查詢系統</title>
     
+    <!-- 引入高質感 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
@@ -102,15 +103,15 @@
             <div class="space-y-1 text-center sm:text-left">
                 <h4 class="text-base font-bold flex items-center justify-center sm:justify-start gap-2">
                     <span class="text-xl">🔌</span>
-                    <span>尚未配置 Firebase 雲端資料庫連結</span>
+                    <span>尚未在 HTML 程式碼中配置 Firebase 雲端金鑰</span>
                 </h4>
                 <p class="text-xs text-slate-400">
-                    此系統為「純雲端發布版」，需要串接 Google Firestore 方能載入跨電腦一致的即時數據。請先至管理端設定金鑰。
+                    本頁面目前為純雲端發布版。請使用文字編輯器打開此 HTML 檔案，並在最上方貼入您申請好的 Firebase SDK Config 物件，手機與電腦即可立即同步！
                 </p>
             </div>
-            <a href="admin.html" class="bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md shrink-0">
-                前往管理者主控台進行設定 ➔
-            </a>
+            <span class="bg-amber-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md shrink-0 select-none">
+                請參考部署指南操作 ➔
+            </span>
         </div>
 
         <!-- 導引說明橫幅 -->
@@ -269,18 +270,6 @@
                         <span class="text-xs font-bold text-slate-400 block uppercase tracking-wider">📖 遊戲簡介</span>
                         <div id="modalGameIntro" class="text-slate-600 text-xs sm:text-sm mt-1 leading-relaxed">暫無說明</div>
                     </div>
-                    <div class="border-l-4 border-teal-500 pl-3">
-                        <span class="text-xs font-bold text-slate-400 block uppercase tracking-wider">📦 遊戲配件</span>
-                        <div id="modalGameComponents" class="text-slate-600 text-xs sm:text-sm mt-1 leading-relaxed">暫無說明</div>
-                    </div>
-                    <div class="border-l-4 border-blue-500 pl-3">
-                        <span class="text-xs font-bold text-slate-400 block uppercase tracking-wider">⚡ 遊戲流程</span>
-                        <div id="modalGameFlow" class="text-slate-600 text-xs sm:text-sm mt-1 leading-relaxed">暫無說明</div>
-                    </div>
-                    <div class="border-l-4 border-amber-500 pl-3">
-                        <span class="text-xs font-bold text-slate-400 block uppercase tracking-wider">🌟 遊戲特色</span>
-                        <div id="modalGameFeatures" class="text-slate-600 text-xs sm:text-sm mt-1 leading-relaxed">暫無說明</div>
-                    </div>
                 </div>
             </div>
 
@@ -302,33 +291,24 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 讀取全域環境配置與本地端共用雲端金鑰
+        // =========================================================================
+        // 🔑 【步驟三】雲端金鑰填寫專區（請直接將您的 SDK config 物件貼入下方大括號中）
+        // =========================================================================
+        const firebaseConfig = {
+  apiKey: "AIzaSyDK458yVOxDiaM_k78HpL7R9S8Z0ntrEUM",
+  authDomain: "learning-center-games.firebaseapp.com",
+  projectId: "learning-center-games",
+  storageBucket: "learning-center-games.firebasestorage.app",
+  messagingSenderId: "639548693687",
+  appId: "1:639548693687:web:2d4d89ffb9ee6c84994132",
+  measurementId: "G-CZ3YN0B59R"
+};
+        // =========================================================================
+
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'boardgame-library-default';
-        let firebaseConfig = null;
-
-        try {
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                firebaseConfig = JSON.parse(__firebase_config);
-            }
-        } catch (e) {
-            console.warn("解析系統 Firebase 設定失敗");
-        }
-
-        // 嘗試讀取管理端儲存的共用金鑰配置
-        if (!firebaseConfig || firebaseConfig.apiKey === "") {
-            const savedConfigStr = localStorage.getItem('user_firebase_config');
-            if (savedConfigStr) {
-                try {
-                    firebaseConfig = JSON.parse(savedConfigStr);
-                } catch(e) {
-                    console.warn("無法解析共用金鑰");
-                }
-            }
-        }
-
         let db = null;
         let auth = null;
         let games = [];
@@ -345,28 +325,24 @@
             const noConfigBanner = document.getElementById('noConfigWarning');
             const guideBanner = document.getElementById('cloudGuideBanner');
 
+            // 檢查金鑰是否已被填入
             if (!firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey === "") {
                 indicator.className = "text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
-                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>🔌 尚未串接雲端</span>`;
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>🔌 雲端未串接</span>`;
                 noConfigBanner.classList.remove('hidden');
                 guideBanner.classList.add('hidden');
                 return;
             }
 
             try {
-                // RULE 3: Auth Before Queries (開始非同步登入)
+                // RULE 3: Auth Before Queries
                 const firebaseApp = initializeApp(firebaseConfig);
                 db = getFirestore(firebaseApp);
                 auth = getAuth(firebaseApp);
 
-                let user;
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    const res = await signInWithCustomToken(auth, __initial_auth_token);
-                    user = res.user;
-                } else {
-                    const res = await signInAnonymously(auth);
-                    user = res.user;
-                }
+                // 進行認證
+                const res = await signInAnonymously(auth);
+                const user = res.user;
 
                 if (user) {
                     // RULE 3 Guard Passed
@@ -617,10 +593,7 @@
             document.getElementById('modalGamePlayers').innerText = game.players || '無限制/未設定';
             document.getElementById('modalGameLocation').innerText = game.location || '未設定存放位置';
             
-            document.getElementById('modalGameIntro').innerText = game.intro || game.note || '本學習中心目前無針對此教育桌遊的簡介說明。';
-            document.getElementById('modalGameComponents').innerText = game.components || '無詳細配件清單。';
-            document.getElementById('modalGameFlow').innerText = game.flow || '無提供遊戲流程備註。';
-            document.getElementById('modalGameFeatures').innerText = game.features || '無特別標註之遊戲特色。';
+            document.getElementById('modalGameIntro').innerText = game.intro || game.note || '本學習中心目前無針對此教育桌遊的簡介說明或遊玩指南。';
 
             const statusContainer = document.getElementById('modalStatusContainer');
             const statusLabel = document.getElementById('modalGameStatus');

@@ -7,6 +7,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- 引入 SheetJS 解析本地上傳之 Excel (含智慧欄位配對) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <script>
@@ -69,7 +70,7 @@
             <div class="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
             <div>
                 <h4 class="font-bold text-slate-800 text-base" id="loadingTitle">正在處理中</h4>
-                <p class="text-xs text-slate-400 mt-1" id="loadingMessage">正在更新雲端資料庫...</p>
+                <p class="text-xs text-slate-400 mt-1" id="loadingMessage">正在同步資料至雲端資料庫...</p>
             </div>
         </div>
     </div>
@@ -115,9 +116,6 @@
 
             <div class="flex items-center gap-2">
                 <input type="file" id="csvFileInput" accept=".csv" class="hidden" />
-                <button onclick="openConfigWizard()" class="text-xs text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3.5 py-1.5 rounded-full font-bold flex items-center gap-1 shadow-sm">
-                    ⚙️ 雲端金鑰設定
-                </button>
                 <span id="syncModeIndicator" class="text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
                     <span>等待金鑰配置...</span>
@@ -133,15 +131,15 @@
             <div class="space-y-2 text-center md:text-left">
                 <h3 class="text-lg font-bold flex items-center justify-center md:justify-start gap-2">
                     <span>🔌</span>
-                    <span>尚未串接 Google Firebase 雲端即時資料庫</span>
+                    <span>尚未在 HTML 程式碼中配置 Firebase 雲端金鑰</span>
                 </h3>
                 <p class="text-xs text-slate-300 max-w-2xl leading-relaxed">
-                    本系統為「純雲端發布版」。為了讓其他電腦、平板或手機在開啟唯讀端網頁時，資料能夠完全即時同步，您需要一個免費的 Google Firebase Firestore 金鑰配置。
+                    本系統為純雲端發布版。為了讓手機、電腦能同步讀寫一致的數據，請使用任何文字編輯器打開此 HTML 檔案，並在程式碼最前方的「金鑰填寫專區」填入您在 Google Firebase Console 所申請的 Web Config 物件！
                 </p>
             </div>
-            <button onclick="openConfigWizard()" class="bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-2xl transition-all shadow-lg shadow-emerald-950 shrink-0">
-                🚀 立即設定雲端資料庫金鑰
-            </button>
+            <span class="bg-amber-500 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-2xl shadow-lg select-none">
+                請參考部署指南操作 ➔
+            </span>
         </div>
 
         <!-- 數據統計板 -->
@@ -210,7 +208,7 @@
                     <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
                         <div>
                             <h3 class="text-base font-bold text-slate-800 mb-4">⚡ 快捷管理中心</h3>
-                            <p class="text-xs text-slate-500 mb-6 leading-relaxed">提供手動建立館藏、預載模擬資料等捷徑。</p>
+                            <p class="text-xs text-slate-500 mb-6 leading-relaxed">提供手動建立館藏、篩選預載等快捷路徑。</p>
                             
                             <div class="space-y-3">
                                 <button onclick="openAddGameModal()" class="w-full flex items-center justify-between p-3.5 bg-brand-50 text-brand-700 rounded-xl hover:bg-brand-100 transition-colors font-medium text-sm">
@@ -398,35 +396,6 @@
         </div>
     </main>
 
-    <!-- 彈出視窗：雲端設定助手 (Firebase Config Wizard) -->
-    <div id="configWizardModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden modal-animate">
-            <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-6 text-white">
-                <h3 class="font-bold text-lg">☁️ 雲端資料庫設定助手</h3>
-                <p class="text-xs text-slate-300 mt-1">請在下方填寫您的 Firebase Web SDK 金鑰設定物件。</p>
-            </div>
-            <form onsubmit="handleSaveCloudConfig(event)" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Firebase SDK 配置 JSON / JavaScript 對象 <span class="text-rose-500">*</span></label>
-                    <textarea id="firebaseConfigRaw" required rows="10" placeholder='例如：
-const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "project-id.firebaseapp.com",
-  projectId: "project-id",
-  storageBucket: "project-id.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123:web:abc"
-};' class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none bg-slate-50"></textarea>
-                    <p class="text-[10px] text-slate-400 mt-1">您可以直接將 Firebase Console 的 Web App 初始化設定整段貼入，系統將會聰明地進行自動過濾提取！</p>
-                </div>
-                <div class="flex gap-3">
-                    <button type="button" onclick="closeConfigWizard()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-sm transition-colors">取消</button>
-                    <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">啟用雲端即時同步</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- 彈出視窗 1：手動新增/編輯桌遊 -->
     <div id="addGameModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
         <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden modal-animate">
@@ -466,26 +435,9 @@ const firebaseConfig = {
                     <input type="text" id="newGameLocation" placeholder="例如: A區-01櫃" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">📖 遊戲簡介</label>
-                        <textarea id="newGameIntro" placeholder="例如：由以色列人發明，考驗排列組合..." rows="2" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">📦 遊戲配件</label>
-                        <textarea id="newGameComponents" placeholder="例如：104張數字牌、2張牌架..." rows="2" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">⚡ 遊戲流程</label>
-                        <textarea id="newGameFlow" placeholder="例如：1.每人抽14張牌 2.首出需破冰..." rows="2" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">🌟 遊戲特色</label>
-                        <textarea id="newGameFeatures" placeholder="例如：規則好懂、千變萬化、鍛鍊心算..." rows="2" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
-                    </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">📖 遊戲簡介與說明</label>
+                    <textarea id="newGameIntro" placeholder="例如：由以色列人發明，考驗排列組合..." rows="3" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
                 </div>
 
                 <div class="pt-4 flex gap-3">
@@ -548,8 +500,7 @@ const firebaseConfig = {
 
     <!-- 彈出視窗 3：辦理歸還入庫 -->
     <div id="returnModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden modal-animate">
-            <div class="bg-brand-600 p-6 text-white">
+        <div class="bg-brand-600 p-6 text-white">
                 <div class="flex items-center justify-between">
                     <h3 class="font-bold text-lg">歸還確認與狀態檢查</h3>
                     <button onclick="closeReturnModal()" class="text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors">✕</button>
@@ -595,46 +546,38 @@ const firebaseConfig = {
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 讀取系統環境變數金鑰
+        // =========================================================================
+        // 🔑 【步驟三】雲端金鑰填寫專區（請直接將您的 SDK config 物件貼入下方大括號中）
+        // =========================================================================
+       const firebaseConfig = {
+  apiKey: "AIzaSyDK458yVOxDiaM_k78HpL7R9S8Z0ntrEUM",
+  authDomain: "learning-center-games.firebaseapp.com",
+  projectId: "learning-center-games",
+  storageBucket: "learning-center-games.firebasestorage.app",
+  messagingSenderId: "639548693687",
+  appId: "1:639548693687:web:2d4d89ffb9ee6c84994132",
+  measurementId: "G-CZ3YN0B59R"
+};
+        // =========================================================================
+
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'boardgame-library-default';
-        let firebaseConfig = null;
-
-        try {
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                firebaseConfig = JSON.parse(__firebase_config);
-            }
-        } catch (e) {
-            console.warn("解析 Firebase Config 失敗");
-        }
-
-        // 讀取本地端儲存金鑰（供未經手動打包程式直接在瀏覽器輸入的進階使用者使用）
-        if (!firebaseConfig || firebaseConfig.apiKey === "") {
-            const savedConfigStr = localStorage.getItem('user_firebase_config');
-            if (savedConfigStr) {
-                try {
-                    firebaseConfig = JSON.parse(savedConfigStr);
-                } catch(e) {
-                    console.warn("無法解析共用金鑰");
-                }
-            }
-        }
 
         const MOCK_CSV_3_DATA = [
-            { code: "LE-01", name: "拉密 (Rummikub)", category: "邏輯思考", players: "2-4人", location: "A區-01櫃", intro: "經典數字排列遊戲。結合了拉米紙牌與麻將玩法，考驗排列組合與邏輯思考能力，被誉為魔力橋。", components: "104張數字牌 (1-13四色各2套)、2張百搭牌、4個底架架子、繁體中文說明書。", flow: "1.每人抽14張手牌。 2.首出需符合「破冰」規則(數字總和達30分以上)。 3.後續出牌可利用桌面現有牌組拆解重組。 4.最先出完手牌者獲勝。", features: "規則好懂上手快、千變萬化無冷場、能高度鍛鍊玩家的敏捷心算與空間聯想重組力。", status: "可借用" },
-            { code: "LE-02", name: "妙語說書人 (Dixit)", category: "語言表達", players: "3-6人", location: "A區-02櫃", intro: "充滿詩意與美麗繪圖的派對遊戲。玩家需要藉由手牌意象與話語暗示進行完美的心理博弈。", components: "84張精美大插畫卡牌、36張投票紙板、6隻木製兔子計分標記、遊戲記分板。", flow: "1.每人手牌6張。 2.說書人選一張給予一組詞彙/句子提示。 3.其他人交出一張最貼切的手牌。 4.所有人混牌洗牌後投票猜測何為說書人原牌得分。", features: "語意聯想與美學思維的最佳啟蒙工具、培養高度的人際同理心與故事敘述力。", status: "可借用" },
-            { code: "LE-03", name: "閃靈快手 (Geistesblitz)", category: "反應專注", players: "2-8人", location: "B區-01櫃", intro: "大受歡迎的手腦眼協調派對遊戲。考驗大腦迴路在多重顏色與形狀干擾下的排除判斷力。", components: "5個精緻木製模型 (白幽靈、綠瓶子、紅沙發、藍書本、灰老鼠)、60張紙牌、說明書。", flow: "1.翻開一張目標卡片。 2.若卡片物件圖案顏色皆對，搶奪該模型。 3.若無完全相符者，搶奪『顏色與形狀皆沒出現』之模型。", features: "節奏超快刺激感極佳、極大化專注力與感知神經敏捷度、全齡活化大腦好幫手。", status: "可借用" },
-            { code: "LE-04", name: "卡卡頌 (Carcassonne)", category: "空間策略", players: "2-5人", location: "B區-02櫃", intro: "拼圖放置遊戲代表作。玩家扮演中古世紀領主，藉由一步步建造道路、城堡、修道院，規劃壯大領土。", components: "72張版塊、40個米寶小人 (5種顏色各8個)、記分板、河流基本擴充版塊套組。", flow: "1.每回合抽取一個地理版塊貼合拼放. 2.可選擇在剛放好的版塊上派遣米寶(騎士、強盜、農夫等)。 3.地貌完成時立刻結算得分並收回米寶。", features: "基礎拼放好玩好上手、高度考驗長遠的資產管理與資源調度、輕策略深度足夠。", status: "可借用" },
-            { code: "LE-05", name: "璀璨寶石 (Splendor)", category: "資源分配", players: "2-4人", location: "C區-01櫃", intro: "世界級輕策略名作。扮演文藝復興時期的富商，開採礦脈、建立店鋪與尋求貴族資助。", components: "40張發展卡、30張中階卡、20張高階卡、40個寶石籌碼Token、10張貴族瓷磚板。", flow: "1.每人回合三選一：拿寶石、保留卡、或用寶石買卡。 2.購買卡片能提供永久折扣。 3.最先累計15分獲勝。", features: "邏輯運算與資源管理練習、精美厚實的籌碼觸感。", status: "可借用" },
-            { code: "LE-06", name: "矮人礦坑 (Saboteur)", category: "人際互動", players: "3-10人", location: "C區-02櫃", intro: "陣營心機對決。分為尋找金礦的好矮人與搞破壞的壞矮人，展開心理戰。", components: "44張路徑牌、27張行動牌、28張金塊牌、11張角色牌。", flow: "1.分發角色手牌。 2.回合可出路徑牌、行動牌 or 棄牌。 3.連通金礦或阻止成功即獲勝。", features: "極佳的破冰派對遊戲，鍛鍊團隊協作與溝通能力。", status: "可借用" },
-            { code: "LE-07", name: "哆寶 (Dobble)", category: "感知專注", players: "2-8人", location: "A區-03櫃", intro: "快速比對圓卡相同圖案，眼明手快對決。", components: "55張圓形卡牌 (每張卡牌有8個符號)、鐵盒、說明書。", flow: "1.每人發手牌。 2.尋找自己手牌與中央牌唯一相同的符號並喊出。 3.最快出完或拿走者得勝。", features: "全齡活化大腦，五分鐘點燃歡樂氣氛。", status: "可借用" },
-            { code: "LE-08", name: "烏邦果 (Ubongo)", category: "幾何拼圖", players: "1-4人", location: "B區-03櫃", intro: "在沙漏極限壓力下，利用幾何版塊填滿任務空白。", components: "36張拼圖板、4套12片幾何版塊、特殊骰子、沙漏、寶石道具。", flow: "1.擲骰決定拼圖組合。 2.沙漏結束前最快拼好並大喊「Ubongo!」者得勝。", features: "空間幾何與平面聯想力鍛鍊，老少咸宜。", status: "可借用" },
-            { code: "LE-09", name: "誰是牛頭王 (Take 6!)", category: "數學思維", players: "2-10人", location: "C區-03櫃", intro: "數字接龍博弈遊戲，暗中出牌依照數字大小排入。", components: "104張牛頭卡牌。", flow: "1.每人10張牌。 2.同時出牌揭曉，依序排入桌面。 3.放至第6張者收走整列扣分。", features: "計算與反轉，培養數值敏感度與機率直覺。", status: "可借用" },
-            { code: "LE-10", name: "疊杯大賽 (Speed Cups)", category: "手眼協調", players: "2-4人", location: "A區-04櫃", intro: "根據提示快速排列五色杯子並按鈴搶答！", components: "20個五色杯、24張任務卡、1個搶答金屬按鈴。", flow: "1.翻開任務卡。 2.依圖像橫向或縱向快速疊/排杯子。 3.最快並按鈴者得卡。", features: "手眼腦協調訓練，趣味競技感拉滿。", status: "可借用" },
-            { code: "LE-11", name: "數字急轉彎 (7 Ate 9)", category: "快速計算", players: "2-4人", location: "B區-04櫃", intro: "加減法極速出牌，沒有回合限制的心算大作戰。", components: "73張數字運算卡牌。", flow: "1.中央置題庫牌，其餘均分。 2.心算「中央牌大數字 ± 小數字」並搶先出牌。", features: "高強度基礎心算與敏捷反應練習。", status: "可借用" },
-            { code: "LE-12", name: "平衡積木 (Jenga)", category: "肢體動覺", players: "2-8人", location: "C區-04櫃", intro: "重力與力量控制，抽積木疊到頂端不倒塌。", components: "54條原木平衡積木、說明書。", flow: "1.輪流單手抽出一根積木並疊至頂端. 2.使木塔倒塌者即輸。", features: "細微肌肉力量控管，高抗壓專注思考。", status: "可借用" }
+            { code: "LE-01", name: "拉密 (Rummikub)", category: "邏輯思考", players: "2-4人", location: "A區-01櫃", intro: "經典數字排列遊戲。結合了拉米紙牌與麻將玩法，考驗排列組合與邏輯思考能力，被誉為魔力橋。", status: "可借用" },
+            { code: "LE-02", name: "妙語說書人 (Dixit)", category: "語言表達", players: "3-6人", location: "A區-02櫃", intro: "充滿詩意與美麗繪圖的派對遊戲。玩家需要藉由手牌意象與話語暗示進行完美的心理博弈。", status: "可借用" },
+            { code: "LE-03", name: "閃靈快手 (Geistesblitz)", category: "反應專注", players: "2-8人", location: "B區-01櫃", intro: "大受歡迎的手腦眼協調派對遊戲。考驗大腦迴路在多重顏色與形狀干擾下的排除判斷力。", status: "可借用" },
+            { code: "LE-04", name: "卡卡頌 (Carcassonne)", category: "空間策略", players: "2-5人", location: "B區-02櫃", intro: "拼圖放置遊戲代表作。玩家扮演中古世紀領主，藉由一步步建造道路、城堡、修道院，規劃壯大領土。", status: "可借用" },
+            { code: "LE-05", name: "璀璨寶石 (Splendor)", category: "資源分配", players: "2-4人", location: "C區-01櫃", intro: "世界級輕策略名作。扮演文藝復興時期的富商，開採礦脈、建立店鋪與尋求貴族資助。", status: "可借用" },
+            { code: "LE-06", name: "矮人礦坑 (Saboteur)", category: "人際互動", players: "3-10人", location: "C區-02櫃", intro: "陣營心機對決。分為尋找金礦的好矮人與搞破壞的壞矮人，展開心理戰。", status: "可借用" },
+            { code: "LE-07", name: "哆寶 (Dobble)", category: "感知專注", players: "2-8人", location: "A區-03櫃", intro: "快速比對圓卡相同圖案，眼明手快對決。", status: "可借用" },
+            { code: "LE-08", name: "烏邦果 (Ubongo)", category: "幾何拼圖", players: "1-4人", location: "B區-03櫃", intro: "在沙漏極限壓力下，利用幾何版塊填滿任務空白。", status: "可借用" },
+            { code: "LE-09", name: "誰是牛頭王 (Take 6!)", category: "數學思維", players: "2-10人", location: "C區-03櫃", intro: "數字接龍博弈遊戲，暗中出牌依照數字大小排入。", status: "可借用" },
+            { code: "LE-10", name: "疊杯大賽 (Speed Cups)", category: "手眼協調", players: "2-4人", location: "A區-04櫃", intro: "根據提示快速排列五色杯子並按鈴搶答！", status: "可借用" },
+            { code: "LE-11", name: "數字急轉彎 (7 Ate 9)", category: "快速計算", players: "2-4人", location: "B區-04櫃", intro: "加減法極速出牌，沒有回合限制的心算大作戰。", status: "可借用" },
+            { code: "LE-12", name: "平衡積木 (Jenga)", category: "肢體動覺", players: "2-8人", location: "C區-04櫃", intro: "重力與力量控制，抽積木疊到頂端不倒塌。", status: "可借用" }
         ];
 
         let db = null;
@@ -659,7 +602,6 @@ const firebaseConfig = {
                 indicator.className = "text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
                 indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>🔌 雲端未設定</span>`;
                 noConfigBanner.classList.remove('hidden');
-                updateAllUI();
                 return;
             }
 
@@ -669,14 +611,9 @@ const firebaseConfig = {
                 db = getFirestore(firebaseApp);
                 auth = getAuth(firebaseApp);
 
-                let user;
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    const res = await signInWithCustomToken(auth, __initial_auth_token);
-                    user = res.user;
-                } else {
-                    const res = await signInAnonymously(auth);
-                    user = res.user;
-                }
+                // 進行認證
+                const res = await signInAnonymously(auth);
+                const user = res.user;
 
                 if (user) {
                     // RULE 3: Authenticated completely
@@ -691,50 +628,6 @@ const firebaseConfig = {
                 indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>⚠️ 連線崩潰</span>`;
             }
         }
-
-        window.openConfigWizard = function() {
-            document.getElementById('firebaseConfigRaw').value = firebaseConfig ? JSON.stringify(firebaseConfig, null, 2) : '';
-            document.getElementById('configWizardModal').classList.remove('hidden');
-        };
-
-        window.closeConfigWizard = function() {
-            document.getElementById('configWizardModal').classList.add('hidden');
-        };
-
-        window.handleSaveCloudConfig = function(e) {
-            e.preventDefault();
-            const raw = document.getElementById('firebaseConfigRaw').value.trim();
-            
-            try {
-                // 智慧剖析：如果使用者貼入一整段 script，提取出中間的 config JSON 物件
-                let configObj = null;
-                if (raw.includes('{') && raw.includes('}')) {
-                    const cleanJson = raw.match(/\{[\s\S]*\}/)[0];
-                    // 為了使 JavaScript object literal 格式能順利解析成 JSON，移除多餘的註解與改寫不標準的 key
-                    const normalized = cleanJson
-                        .replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1') // 去除 // 與 /* */ 註解
-                        .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')  // 將未加雙引號的 key 強制加上雙引號
-                        .replace(/'/g, '"') // 將單引號改為雙引號
-                        .replace(/,\s*([\]}])/g, '$1'); // 去除 JSON 尾端多餘逗號
-                    
-                    configObj = JSON.parse(normalized);
-                } else {
-                    configObj = JSON.parse(raw);
-                }
-
-                if (configObj && configObj.apiKey && configObj.projectId) {
-                    localStorage.setItem('user_firebase_config', JSON.stringify(configObj));
-                    closeConfigWizard();
-                    showToast("雲端金鑰配對成功！網頁即將重新整理啟用同步。");
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showToast("配置物件格式錯誤，缺少關鍵屬性 apiKey 或 projectId！", "error");
-                }
-            } catch(err) {
-                console.error(err);
-                showToast("解析失敗，請確認貼入的格式符合 JSON/Object 規格！", "error");
-            }
-        };
 
         function setupFirebaseListeners() {
             if (!db) return;
@@ -1086,6 +979,7 @@ const firebaseConfig = {
                     const uint8Array = new Uint8Array(data);
                     let csvContent = "";
 
+                    // 智慧編碼檢查 (UTF-8 with BOM vs Big5)
                     if (uint8Array[0] === 0xEF && uint8Array[1] === 0xBB && uint8Array[2] === 0xBF) {
                         csvContent = new TextDecoder('utf-8').decode(uint8Array);
                     } else {
@@ -1125,9 +1019,6 @@ const firebaseConfig = {
                         const players = findVal(['人數', '遊玩人數', 'players', '適合人數']);
                         const location = findVal(['位置', '放置', '櫃位', 'location']);
                         const intro = findVal(['遊戲簡介', '簡介', 'intro', '備註', '說明', 'note']);
-                        const components = findVal(['遊戲配件', '配件', 'components']);
-                        const flow = findVal(['遊戲流程', '流程', 'flow']);
-                        const features = findVal(['遊戲特色', '特色', 'features']);
 
                         if (!code && !name) return null;
 
@@ -1141,9 +1032,6 @@ const firebaseConfig = {
                             location: location || '櫃位未定',
                             status: '可借用',
                             intro: intro || '',
-                            components: components || '',
-                            flow: flow || '',
-                            features: features || '',
                             note: intro || '',
                             createdAt: Date.now() + index
                         };
@@ -1189,11 +1077,7 @@ const firebaseConfig = {
             document.getElementById('newGameCategory').value = game.category || '';
             document.getElementById('newGamePlayers').value = game.players || '';
             document.getElementById('newGameLocation').value = game.location || '';
-            
             document.getElementById('newGameIntro').value = game.intro || game.note || '';
-            document.getElementById('newGameComponents').value = game.components || '';
-            document.getElementById('newGameFlow').value = game.flow || '';
-            document.getElementById('newGameFeatures').value = game.features || '';
 
             document.getElementById('modalAddTitle').innerText = "編輯教育桌遊館藏";
             document.getElementById('modalAddSubmitBtn').innerText = "更新修改";
@@ -1214,11 +1098,7 @@ const firebaseConfig = {
             const category = document.getElementById('newGameCategory').value.trim();
             const players = document.getElementById('newGamePlayers').value.trim();
             const location = document.getElementById('newGameLocation').value.trim();
-            
             const intro = document.getElementById('newGameIntro').value.trim();
-            const components = document.getElementById('newGameComponents').value.trim();
-            const flow = document.getElementById('newGameFlow').value.trim();
-            const features = document.getElementById('newGameFeatures').value.trim();
 
             if (games.some(g => g.code === code && g.id !== editingId)) {
                 showToast("此館藏編號已重複！", "error");
@@ -1235,9 +1115,6 @@ const firebaseConfig = {
                 players,
                 location,
                 intro,
-                components,
-                flow,
-                features,
                 note: intro,
                 status: editingId ? (games.find(g => g.id === editingId)?.status || '可借用') : '可借用',
                 createdAt: editingId ? (games.find(g => g.id === editingId)?.createdAt || Date.now()) : Date.now()
