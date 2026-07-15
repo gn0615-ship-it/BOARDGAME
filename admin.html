@@ -1,28 +1,1177 @@
-<!-- ... existing code ... -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學習中心教育桌遊管理系統 - 控制台</title>
+    
+    <!-- 引入高質感 Tailwind CSS、高畫質字型、與 Excel 讀取核心 SheetJS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* 彈窗與卡片動態載入 */
+        .modal-animate {
+            animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.96) translateY(8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 antialiased flex flex-col justify-between">
+
+    <!-- 自訂通知提示 -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- 頂部管理端主導航 -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-gradient-to-tr from-brand-500 to-teal-600 rounded-xl text-white shadow-md shadow-emerald-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold bg-gradient-to-r from-brand-600 to-teal-700 bg-clip-text text-transparent">
+                        學習中心教育桌遊管理系統 (控制台)
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-slate-500 font-semibold uppercase tracking-wider">BOARDGAME LIBRARY CONTROL PANEL</p>
+                </div>
+            </div>
+
+            <!-- 雲端同步狀態燈號 -->
+            <div id="statusIndicator" class="flex items-center gap-1.5 bg-rose-50 text-rose-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-rose-100 transition-all">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse inline-block"></span>
+                <span id="statusIndicatorText">🔌 雲端未連線</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主工作區 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full space-y-6">
+        
+        <!-- 四維數據看板 -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">總庫存量</p>
+                    <h3 class="text-lg sm:text-2xl font-black text-slate-800 mt-1" id="statTotal">0 套</h3>
+                </div>
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">在庫可借</p>
+                    <h3 class="text-lg sm:text-2xl font-black text-emerald-600 mt-1" id="statAvailable">0 套</h3>
+                </div>
+                <div class="p-3 bg-brand-50 text-brand-600 rounded-xl">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">目前借出</p>
+                    <h3 class="text-lg sm:text-2xl font-black text-amber-600 mt-1" id="statBorrowed">0 套</h3>
+                </div>
+                <div class="p-3 bg-amber-50 text-amber-500 rounded-xl">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">逾期催收</p>
+                    <h3 class="text-lg sm:text-2xl font-black text-rose-600 mt-1" id="statOverdue">0 筆</h3>
+                </div>
+                <div class="p-3 bg-rose-50 text-rose-500 rounded-xl">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- 導航控制列與按鈕 (完全依要求順序與名稱排列) -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-slate-400">系統分流標籤:</span>
+                <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                    <button id="tabBtn-games" class="px-4 py-2 rounded-lg bg-white text-brand-700 shadow-sm">教育館藏庫存</button>
+                    <button id="tabBtn-loans" class="px-4 py-2 rounded-lg text-slate-500 hover:text-slate-800">當前借閱狀態</button>
+                    <button id="tabBtn-history" class="px-4 py-2 rounded-lg text-slate-500 hover:text-slate-800">歷史借還軌跡</button>
+                </div>
+            </div>
+
+            <!-- 操作工具列 (完全符合要求: 雲端全清除 ➔ 匯出 CSV ➔ 匯入 CSV ➔ 新增單筆) -->
+            <div class="flex flex-wrap items-center gap-2.5">
+                <!-- 1. 🗑️ 雲端全清除 -->
+                <button id="toolBtn-clearAll" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold px-3.5 py-2 rounded-xl text-xs transition-colors flex items-center gap-1.5">
+                    <span>🗑️ 雲端全清除</span>
+                </button>
+
+                <!-- 2. 📤 匯出 CSV -->
+                <button id="toolBtn-export" class="bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 font-bold px-3.5 py-2 rounded-xl text-xs transition-colors flex items-center gap-1.5">
+                    <span>📤 匯出 CSV</span>
+                </button>
+
+                <!-- 3. 📥 匯入 CSV -->
+                <button id="toolBtn-import" class="bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 font-bold px-3.5 py-2 rounded-xl text-xs transition-colors flex items-center gap-1.5">
+                    <span>📥 匯入 CSV</span>
+                </button>
+
+                <!-- 4. ➕ 新增單筆 -->
+                <button id="toolBtn-add" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors flex items-center gap-1.5 shadow-md shadow-emerald-100">
+                    <span>➕ 新增單筆</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 隱藏的 CSV 檔案上傳觸發器 -->
+        <input type="file" id="csvFileInput" accept=".csv" class="hidden">
+
+        <!-- 各分頁面板顯示區 -->
+        <div id="contentPanesContainer">
+            
+            <!-- 面板 A：教育館藏庫存 -->
+            <div id="pane-games" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="relative flex-1 max-w-sm">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        </span>
+                        <input type="text" id="gameSearchInput" placeholder="搜尋編號、名稱或櫃位..." class="w-full pl-9 pr-4 py-1.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                    </div>
+                    <div class="flex gap-2">
+                        <select id="gameCatSelect" class="bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 shadow-sm focus:outline-none">
+                            <option value="">全部分類</option>
+                        </select>
+                        <select id="gameStateSelect" class="bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 shadow-sm focus:outline-none">
+                            <option value="">全部狀態</option>
+                            <option value="可借用">可借用</option>
+                            <option value="出借中">出借中</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                <th class="px-6 py-4">館藏編號</th>
+                                <th class="px-6 py-4">桌遊名稱與特色備註</th>
+                                <th class="px-6 py-4">分類類別</th>
+                                <th class="px-6 py-4">遊玩人數</th>
+                                <th class="px-6 py-4">存放位置</th>
+                                <th class="px-6 py-4">狀態</th>
+                                <th class="px-6 py-4 text-right">管理操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gamesTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 面板 B：當前借閱狀態 -->
+            <div id="pane-loans" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <h4 class="text-sm font-bold text-slate-700">📋 目前正被借出的桌遊明冊</h4>
+                    <span class="text-xs bg-amber-50 text-amber-700 font-bold px-2.5 py-1 rounded-full border border-amber-100" id="loansCount">共 0 筆</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                <th class="px-6 py-4">出借桌遊</th>
+                                <th class="px-6 py-4">借閱人與電話</th>
+                                <th class="px-6 py-4">借出日期</th>
+                                <th class="px-6 py-4">預計歸還日期</th>
+                                <th class="px-6 py-4">逾期狀態</th>
+                                <th class="px-6 py-4 text-right">點收操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loansTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 面板 C：歷史借還軌跡 -->
+            <div id="pane-history" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 bg-slate-50/50">
+                    <h4 class="text-sm font-bold text-slate-700">📜 全歷史借還與配件點收日誌</h4>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                <th class="px-6 py-4">歷史桌遊</th>
+                                <th class="px-6 py-4">借閱人資訊</th>
+                                <th class="px-6 py-4">歷程日程</th>
+                                <th class="px-6 py-4">最終歸還狀態</th>
+                                <th class="px-6 py-4">備忘筆記</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- 彈出對話框：新增與編輯單筆桌遊 (含 4 大結構化欄位) -->
+    <div id="gameModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden modal-animate flex flex-col">
+            <div class="bg-gradient-to-r from-brand-600 to-teal-700 p-6 text-white flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-lg" id="gameModalTitle">新增桌遊館藏</h3>
+                    <p class="text-xs text-brand-100 mt-1">手動完善桌遊資訊以登錄雲端</p>
+                </div>
+                <button type="button" id="closeGameModalBtn" class="text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors">✕</button>
+            </div>
+
+            <form id="gameForm" class="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+                <input type="hidden" id="editGameId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">館藏編號 (若不填自動由 LE-001 起編)</label>
+                        <input type="text" id="formCode" placeholder="例如: LE-001" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">桌遊名稱 <span class="text-rose-500">*</span></label>
+                        <input type="text" id="formName" required placeholder="例如: 拉密" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">分類領域</label>
+                        <input type="text" id="formCategory" placeholder="例如: 邏輯思考" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">遊玩人數</label>
+                        <input type="text" id="formPlayers" placeholder="例如: 2-4人" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">存放櫃位</label>
+                        <input type="text" id="formLocation" placeholder="例如: A區-01" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- 四大結構欄位 -->
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-700 uppercase mb-0.5">📋 遊戲簡介</label>
+                        <textarea id="formIntro" rows="2" placeholder="簡述遊戲的世界觀、背景與核心任務..." class="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-sky-700 uppercase mb-0.5">📦 遊戲配件</label>
+                        <textarea id="formAccessories" rows="2" placeholder="例如: 數字牌 106 塊、牌架 4 個、說明書 1 份..." class="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-purple-700 uppercase mb-0.5">🔄 遊戲流程</label>
+                        <textarea id="formFlow" rows="2" placeholder="精簡條列基礎遊玩步驟，如 1. 摸牌 2. 出牌 3. 補牌..." class="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-amber-700 uppercase mb-0.5">✨ 遊戲特色</label>
+                        <textarea id="formFeatures" rows="2" placeholder="描述可培育的教學特點，如訓練空間邏輯、加減速算等..." class="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none resize-none"></textarea>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex gap-3">
+                    <button type="button" id="cancelGameBtn" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition-colors">取消</button>
+                    <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors">儲存至雲端</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 彈出對話框：登記借出桌遊 -->
+    <div id="borrowModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden modal-animate flex flex-col">
+            <div class="bg-gradient-to-r from-brand-600 to-teal-700 p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-lg">辦理桌遊登記借出</h3>
+                    <button type="button" id="closeBorrowModalBtn" class="text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors">✕</button>
+                </div>
+                <div class="mt-3 bg-white/10 p-3 rounded-xl">
+                    <span class="text-[10px] text-brand-100 block font-bold uppercase">預備借出館藏</span>
+                    <span class="text-sm font-bold" id="borrowGameName">--</span>
+                    <span class="text-xs ml-2 font-mono bg-white/20 px-1.5 py-0.5 rounded text-white" id="borrowGameCode">--</span>
+                </div>
+            </div>
+
+            <form id="borrowForm" class="p-6 space-y-4">
+                <input type="hidden" id="borrowGameId">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">借閱人姓名 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="borrowName" required placeholder="例如: 陳小明" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">聯絡電話 / 手機 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="borrowPhone" required placeholder="例如: 0912-345-678" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">借出日期</label>
+                        <input type="date" id="borrowDate" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">預計歸還日期</label>
+                        <input type="date" id="dueDate" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">備註/用途說明</label>
+                    <textarea id="borrowNote" rows="2" placeholder="社團活動、期末聚會或寒暑期借閱..." class="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none resize-none"></textarea>
+                </div>
+
+                <div class="pt-3 flex gap-3">
+                    <button type="button" id="cancelBorrowBtn" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition-colors">取消</button>
+                    <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors">確認借出登記</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 彈出對話框：歸還點收 -->
+    <div id="returnModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden modal-animate flex flex-col">
+            <div class="bg-gradient-to-r from-brand-600 to-teal-700 p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-lg">歸還點收辦理</h3>
+                    <button type="button" id="closeReturnModalBtn" class="text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors">✕</button>
+                </div>
+                <div class="mt-3 bg-white/10 p-3 rounded-xl">
+                    <span class="text-[10px] text-brand-100 block font-bold uppercase" id="returnBorrowerInfo">借閱人: --</span>
+                    <span class="text-sm font-bold" id="returnGameName">--</span>
+                    <span class="text-xs ml-2 font-mono bg-white/20 px-1.5 py-0.5 rounded text-white" id="returnGameCode">--</span>
+                </div>
+            </div>
+
+            <form id="returnForm" class="p-6 space-y-4">
+                <input type="hidden" id="returnLoanId">
+                <input type="hidden" id="returnGameId">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">歸還配件與物況檢核</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" class="cond-btn py-2.5 px-1 rounded-xl text-xs font-semibold border transition-all border-brand-600 bg-brand-50 text-brand-700" data-cond="良好">良好</button>
+                        <button type="button" class="cond-btn py-2.5 px-1 rounded-xl text-xs font-semibold border transition-all border-slate-200 bg-white hover:bg-slate-50 text-slate-600" data-cond="輕微損壞">輕微損壞</button>
+                        <button type="button" class="cond-btn py-2.5 px-1 rounded-xl text-xs font-semibold border transition-all border-slate-200 bg-white hover:bg-slate-50 text-slate-600" data-cond="遺失損壞">遺失損壞</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">配件歸還清點筆記</label>
+                    <textarea id="returnNote" rows="3" placeholder="若有損毀、缺少卡片、算子或棋子，請詳細記錄於此..." class="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none resize-none"></textarea>
+                </div>
+
+                <div class="pt-3 flex gap-3">
+                    <button type="button" id="cancelReturnBtn" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition-colors">返回</button>
+                    <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors">點收並還原在庫</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 頁尾 -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-xs text-slate-400">學習中心教育桌遊館藏與借閱管理系統 (管理者控制台) © 2026. All rights reserved.</p>
+            <p class="text-[10px] text-slate-300 mt-1">智慧雲端同步驅動引擎 ☁️ Google Firebase Firestore</p>
+        </div>
+    </footer>
+
+    <!-- 引入 Firebase 模組與後台核心 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // 智慧金鑰配置區 (已為您完美嵌入)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDK458yVOxDiaM_k78HpL7R9S8Z0ntrEUM",
+            authDomain: "learning-center-games.firebaseapp.com",
+            projectId: "learning-center-games",
+            storageBucket: "learning-center-games.firebasestorage.app",
+            messagingSenderId: "639548693687",
+            appId: "1:639548693687:web:2d4d89ffb9ee6c84994132",
+            measurementId: "G-CZ3YN0B59R"
+        };
+
+        let db, auth;
+        let games = [];
+        let loans = [];
+        let selectedReturnCondition = '良好';
+
+        const appId = firebaseConfig.projectId;
+
+        // 初始化 Firebase 連線
+        async function initFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // 匿名身分驗證，確保連線合法
+                await signInAnonymously(auth);
+
+                // 亮起綠色連線成功指示燈
+                const statusIndicator = document.getElementById('statusIndicator');
+                statusIndicator.className = "flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-emerald-100 transition-all";
+                document.getElementById('statusIndicatorText').innerText = "☁️ 雲端同步中";
+
+                setupFirebaseListeners();
+            } catch (err) {
+                console.error("Firebase 控制台初始化失敗:", err);
+                showToast("⚠️ 雲端資料庫連線失敗，請檢查 Firebase 設定！", "error");
+            }
+        }
+
+        // 設定雲端監聽器
         function setupFirebaseListeners() {
             if (!db) return;
 
-            // RULE 1: Strict Paths
+            // 1. 監聽桌遊集合 (/artifacts/{appId}/public/data/games)
             const gamesCol = collection(db, 'artifacts', appId, 'public', 'data', 'games');
             onSnapshot(gamesCol, (snapshot) => {
                 const tempGames = [];
                 snapshot.forEach(doc => {
                     tempGames.push({ ...doc.data(), id: doc.id });
                 });
-                // 修正：將原本依照時間倒序排序，改為依照館藏編號「由小至大（正序）」自然數值排列
+                
+                // 修正：自然排序由小至大 (LE-001, LE-002...)
                 games = tempGames.sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' }));
+                
                 updateAllUI();
             }, (err) => {
                 console.error("讀取館藏發生錯誤:", err);
             });
 
-            // RULE 1: Strict Paths
-<!-- ... existing code ... -->
-```
-eof
+            // 2. 監聽借用集合 (/artifacts/{appId}/public/data/loans)
+            const loansCol = collection(db, 'artifacts', appId, 'public', 'data', 'loans');
+            onSnapshot(loansCol, (snapshot) => {
+                const tempLoans = [];
+                snapshot.forEach(doc => {
+                    tempLoans.push({ ...doc.data(), id: doc.id });
+                });
+                loans = tempLoans;
+                updateAllUI();
+            }, (err) => {
+                console.error("讀取借用紀錄錯誤:", err);
+            });
+        }
 
-### ⚙️ 管理端排序修正說明：
-* **數值自然排序**：使用了 JavaScript 標準的 `localeCompare` 並配置了 `{ numeric: true }`。這代表當有 `LE-2`、`LE-10`、`LE-100` 等編號時，系統會自動將它視為純數值進行遞增排列，絕不會出現字母排序混亂的情況！
-* **雙端同步**：現在不論是學生在查詢端看到的型錄卡片，還是您在控制台看到的清單，兩邊的順序均已百分之百一致地由小到大整齊排列。
+        // 全面更新控制台 UI 與統計數據
+        function updateAllUI() {
+            calculateStats();
+            renderCategoryFilter();
+            renderGamesTable();
+            renderLoansTable();
+            renderHistoryTable();
+        }
 
-您現在可以直接按下右側 **Preview** 重新預覽，或者將檔案直接上傳到您的 GitHub，跨裝置的排序已經完美校正完成！
+        function calculateStats() {
+            const total = games.length;
+            const available = games.filter(g => g.status === '可借用').length;
+            const borrowed = games.filter(g => g.status === '出借中').length;
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            const overdue = loans.filter(l => l.status === '出借中' && l.dueDate < todayStr).length;
+
+            document.getElementById('statTotal').innerText = `${total} 套`;
+            document.getElementById('statAvailable').innerText = `${available} 套`;
+            document.getElementById('statBorrowed').innerText = `${borrowed} 套`;
+            document.getElementById('statOverdue').innerText = `${overdue} 筆`;
+            document.getElementById('loansCount').innerText = `共 ${borrowed} 筆`;
+        }
+
+        function renderCategoryFilter() {
+            const select = document.getElementById('gameCatSelect');
+            const currentSelected = select.value;
+            const cats = [...new Set(games.map(g => g.category).filter(Boolean))];
+            
+            select.innerHTML = '<option value="">全部分類</option>';
+            cats.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.innerText = cat;
+                if (cat === currentSelected) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        // 面板 A：教育館藏庫存表格渲染
+        function renderGamesTable() {
+            const tbody = document.getElementById('gamesTableBody');
+            tbody.innerHTML = '';
+
+            const searchQuery = document.getElementById('gameSearchInput').value.trim().toLowerCase();
+            const categoryFilter = document.getElementById('gameCatSelect').value;
+            const statusFilter = document.getElementById('gameStateSelect').value;
+
+            const filtered = games.filter(g => {
+                const matchesSearch = 
+                    (g.name || '').toLowerCase().includes(searchQuery) ||
+                    (g.code || '').toLowerCase().includes(searchQuery) ||
+                    (g.location || '').toLowerCase().includes(searchQuery);
+                const matchesCategory = categoryFilter ? g.category === categoryFilter : true;
+                const matchesStatus = statusFilter ? g.status === statusFilter : true;
+                return matchesSearch && matchesCategory && matchesStatus;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-slate-400 text-xs font-semibold">🔍 當前無符合查詢條件的館藏資料</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(game => {
+                const isAvailable = game.status === '可借用';
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/50 transition-colors";
+
+                let statusBadge = isAvailable
+                    ? `<span class="inline-flex items-center gap-1 bg-brand-50 text-brand-700 text-xs px-2.5 py-1 rounded-full font-bold">● 可借用</span>`
+                    : `<span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-xs px-2.5 py-1 rounded-full font-bold">● 出借中</span>`;
+
+                let actionButton = isAvailable
+                    ? `<button class="borrow-trigger bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-colors" data-id="${game.id}">登記借出</button>`
+                    : `<button class="return-trigger bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-colors" data-id="${game.id}">辦理歸還</button>`;
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-mono text-xs font-bold text-slate-500">${game.code || '-'}</td>
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-900">${game.name}</div>
+                        ${game.intro ? `<div class="text-[10px] text-slate-400 mt-1 max-w-sm truncate" title="${game.intro}">${game.intro}</div>` : ''}
+                    </td>
+                    <td class="px-6 py-4">
+                        ${game.category ? `<span class="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-lg font-semibold">${game.category}</span>` : '-'}
+                    </td>
+                    <td class="px-6 py-4 text-slate-600 font-medium">${game.players || '-'}</td>
+                    <td class="px-6 py-4 text-slate-600 font-medium">${game.location || '-'}</td>
+                    <td class="px-6 py-4">${statusBadge}</td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            ${actionButton}
+                            <button class="edit-trigger p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors" data-id="${game.id}" title="編輯四大欄位">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </button>
+                            <button class="delete-trigger p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 transition-colors" data-id="${game.id}" data-name="${game.name}" title="永久移除館藏">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // 掛載表格內事件
+            document.querySelectorAll('.borrow-trigger').forEach(btn => {
+                btn.addEventListener('click', () => openBorrowModal(btn.getAttribute('data-id')));
+            });
+
+            document.querySelectorAll('.return-trigger').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const gameId = btn.getAttribute('data-id');
+                    const activeLoan = loans.find(l => l.gameId === gameId && l.status === '出借中');
+                    if (activeLoan) openReturnModal(activeLoan);
+                });
+            });
+
+            document.querySelectorAll('.edit-trigger').forEach(btn => {
+                btn.addEventListener('click', () => openEditGameModal(btn.getAttribute('data-id')));
+            });
+
+            document.querySelectorAll('.delete-trigger').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    handleDeleteGame(btn.getAttribute('data-id'), btn.getAttribute('data-name'));
+                });
+            });
+        }
+
+        // 面板 B：當前出借表格渲染
+        function renderLoansTable() {
+            const tbody = document.getElementById('loansTableBody');
+            tbody.innerHTML = '';
+
+            const activeLoans = loans.filter(l => l.status === '出借中');
+
+            if (activeLoans.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-12 text-center text-slate-400 text-xs font-semibold">🎉 當前沒有任何桌遊被借出，庫存非常充足！</td></tr>`;
+                return;
+            }
+
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            activeLoans.forEach(loan => {
+                const isOverdue = loan.dueDate < todayStr;
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/50 transition-colors";
+
+                let overdueBadge = isOverdue
+                    ? `<span class="inline-flex items-center bg-rose-50 text-rose-700 text-xs font-bold px-2.5 py-1 rounded-full border border-rose-100 animate-pulse">⚠️ 已逾期</span>`
+                    : `<span class="inline-flex items-center bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-100">正常借用</span>`;
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4">
+                        <span class="text-[10px] font-mono font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${loan.gameCode}</span>
+                        <div class="font-bold text-slate-900 mt-1">${loan.gameName}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-800">${loan.borrowerName}</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">📱 ${loan.borrowerPhone}</div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-600 font-semibold font-mono">${loan.borrowDate}</td>
+                    <td class="px-6 py-4 text-slate-600 font-semibold font-mono">${loan.dueDate}</td>
+                    <td class="px-6 py-4">${overdueBadge}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button class="return-loan-trigger bg-brand-600 hover:bg-brand-700 text-white font-bold px-3 py-2 rounded-xl text-xs transition-all shadow-sm active:scale-95" data-id="${loan.id}">
+                            歸還點收
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.querySelectorAll('.return-loan-trigger').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const loan = loans.find(l => l.id === btn.getAttribute('data-id'));
+                    if (loan) openReturnModal(loan);
+                });
+            });
+        }
+
+        // 面板 C：全歷史借還軌跡渲染
+        function renderHistoryTable() {
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = '';
+
+            const completedLoans = loans.filter(l => l.status === '已歸還');
+
+            if (completedLoans.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-slate-400 text-xs font-semibold">🕒 暫無歸還歷史紀錄，完成歸還點收後紀錄將在此封存。</td></tr>`;
+                return;
+            }
+
+            completedLoans.forEach(loan => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/50 transition-colors text-xs";
+
+                let condBadge = loan.condition === '良好'
+                    ? `<span class="bg-emerald-50 text-emerald-700 border border-emerald-100 font-bold px-2 py-0.5 rounded-md">良好</span>`
+                    : loan.condition === '輕微損壞'
+                        ? `<span class="bg-amber-50 text-amber-700 border border-amber-100 font-bold px-2 py-0.5 rounded-md">輕微損壞</span>`
+                        : `<span class="bg-rose-50 text-rose-700 border border-rose-100 font-bold px-2 py-0.5 rounded-md">遺失損壞</span>`;
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4">
+                        <span class="text-[10px] font-mono font-semibold text-slate-400">${loan.gameCode}</span>
+                        <div class="font-bold text-slate-800 mt-0.5">${loan.gameName}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="font-semibold text-slate-700">${loan.borrowerName}</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">📱 ${loan.borrowerPhone}</div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-500 font-medium">
+                        <div>借: ${loan.borrowDate}</div>
+                        <div class="mt-0.5">還: ${loan.returnDate}</div>
+                    </td>
+                    <td class="px-6 py-4">${condBadge}</td>
+                    <td class="px-6 py-4 text-slate-400 leading-relaxed font-semibold max-w-xs truncate" title="${loan.note || ''}">${loan.note || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 刪除桌遊項目
+        async function handleDeleteGame(gameId, gameName) {
+            const hasActiveLoan = loans.some(l => l.gameId === gameId && l.status === '出借中');
+            if (hasActiveLoan) {
+                showToast(`⚠️ 桌遊「${gameName}」正處於出借狀態，無法直接刪除！`, "error");
+                return;
+            }
+
+            if (confirm(`確定要永久刪除桌遊「${gameName}」嗎？這將會同步移除雲端資料庫中的對應品項。`)) {
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId));
+                    showToast(`已成功將「${gameName}」自雲端移除！`);
+                } catch (err) {
+                    console.error("刪除失敗:", err);
+                    showToast("刪除過程中發生雲端錯誤，請再試一次。", "error");
+                }
+            }
+        }
+
+        // 提交新增/編輯桌遊
+        document.getElementById('gameForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const editId = document.getElementById('editGameId').value;
+            
+            // 智慧自動重新編碼起編邏輯 (從 001 號開始)
+            let finalCode = document.getElementById('formCode').value.trim();
+            if (!finalCode) {
+                const nextNum = games.length + 1;
+                // padding 補零：LE-001, LE-002...
+                finalCode = `LE-${String(nextNum).padStart(3, '0')}`;
+            }
+
+            const gameData = {
+                code: finalCode,
+                name: document.getElementById('formName').value.trim(),
+                category: document.getElementById('formCategory').value.trim(),
+                players: document.getElementById('formPlayers').value.trim(),
+                location: document.getElementById('formLocation').value.trim(),
+                intro: document.getElementById('formIntro').value.trim(),
+                accessories: document.getElementById('formAccessories').value.trim(),
+                flow: document.getElementById('formFlow').value.trim(),
+                features: document.getElementById('formFeatures').value.trim(),
+                status: editId ? (games.find(g => g.id === editId)?.status || '可借用') : '可借用'
+            };
+
+            try {
+                if (editId) {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', editId), gameData);
+                    showToast(`桌遊「${gameData.name}」四維特色更新成功！`);
+                } else {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'games'), gameData);
+                    showToast(`桌遊「${gameData.name}」已成功新增至雲端！`);
+                }
+                closeGameModal();
+            } catch (err) {
+                console.error("儲存桌遊錯誤:", err);
+                showToast("保存資料時發生問題，請確認網路連線。", "error");
+            }
+        });
+
+        // 提交登記借出
+        document.getElementById('borrowForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const gameId = document.getElementById('borrowGameId').value;
+            const game = games.find(g => g.id === gameId);
+            if (!game) return;
+
+            const loanData = {
+                gameId: game.id,
+                gameName: game.name,
+                gameCode: game.code,
+                borrowerName: document.getElementById('borrowName').value.trim(),
+                borrowerPhone: document.getElementById('borrowPhone').value.trim(),
+                borrowDate: document.getElementById('borrowDate').value,
+                dueDate: document.getElementById('dueDate').value,
+                returnDate: null,
+                status: '出借中',
+                condition: null,
+                note: document.getElementById('borrowNote').value.trim()
+            };
+
+            try {
+                // 1. 寫入借閱紀錄
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'loans'), loanData);
+                
+                // 2. 修改桌遊狀態為「出借中」
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId), { status: '出借中' });
+
+                showToast(`借出手續辦理成功！借閱人：${loanData.borrowerName}`);
+                closeBorrowModal();
+            } catch (err) {
+                console.error("借出登記失敗:", err);
+                showToast("雲端寫入失敗，請確認 Firebase 安全性規則設定是否正確。", "error");
+            }
+        });
+
+        // 提交點收歸還
+        document.getElementById('returnForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const loanId = document.getElementById('returnLoanId').value;
+            const gameId = document.getElementById('returnGameId').value;
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            const extraNote = document.getElementById('returnNote').value.trim();
+
+            try {
+                // 1. 更新借閱紀錄為已歸還
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', loanId), {
+                    status: '已歸還',
+                    returnDate: todayStr,
+                    condition: selectedReturnCondition,
+                    note: extraNote ? `物況: ${selectedReturnCondition} | 點收筆記: ${extraNote}` : `物況: ${selectedReturnCondition}`
+                });
+
+                // 2. 還原桌遊狀態為「可借用」
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId), { status: '可借用' });
+
+                showToast(`歸還點收完成！該桌遊已恢復「可借用」綠色燈號。`);
+                closeReturnModal();
+            } catch (err) {
+                console.error("歸還失敗:", err);
+                showToast("雲端連線失敗，請檢查網路連接後重試。", "error");
+            }
+        });
+
+        // 核心：📥 匯入 CSV 及智慧模糊比對 (自動從 LE-001 開始重編碼)
+        document.getElementById('toolBtn-import').addEventListener('click', () => {
+            document.getElementById('csvFileInput').click();
+        });
+
+        document.getElementById('csvFileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                const text = evt.target.result;
+                const rows = text.split('\n').map(row => parseCSVRow(row));
+                if (rows.length < 2) {
+                    showToast("⚠️ 檔案內容為空，或格式不符！", "error");
+                    return;
+                }
+
+                const headers = rows[0].map(h => h.trim().toLowerCase());
+                
+                // 智慧模糊比對映射
+                const findIndex = (keys) => headers.findIndex(h => keys.some(k => h.includes(k)));
+
+                const idxCode = findIndex(['編號', '代碼', 'code']);
+                const idxName = findIndex(['名稱', '品名', '桌遊', 'name']);
+                const idxCategory = findIndex(['類別', '分類', 'category']);
+                const idxPlayers = findIndex(['人數', '人數', 'players']);
+                const idxLocation = findIndex(['位置', '存放', '櫃位', 'location']);
+                const idxIntro = findIndex(['遊戲簡介', '簡介', '說明', 'intro']);
+                const idxAccessories = findIndex(['遊戲配件', '配件', '道具', 'accessories']);
+                const idxFlow = findIndex(['遊戲流程', '流程', '規則', 'flow']);
+                const idxFeatures = findIndex(['遊戲特色', '特色', '優點', 'features']);
+
+                if (idxName === -1) {
+                    showToast("⚠️ 無法識別「桌遊名稱」欄位！請確認 CSV 表頭。", "error");
+                    return;
+                }
+
+                const batch = writeBatch(db);
+                let importedCount = 0;
+
+                // 批次寫入 Firebase (自動起編重構 LE-001)
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (row.length === 0 || !row[idxName]) continue;
+
+                    const nextIndex = games.length + importedCount + 1;
+                    const parsedCode = idxCode !== -1 ? row[idxCode].trim() : '';
+                    
+                    // 自動編碼：若空白則依照流水號補零起編：LE-001, LE-002...
+                    const finalCode = parsedCode ? parsedCode : `LE-${String(nextIndex).padStart(3, '0')}`;
+
+                    const newDocRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'games'));
+                    batch.set(newDocRef, {
+                        code: finalCode,
+                        name: row[idxName].trim(),
+                        category: idxCategory !== -1 ? row[idxCategory].trim() : '未分類',
+                        players: idxPlayers !== -1 ? row[idxPlayers].trim() : '不限',
+                        location: idxLocation !== -1 ? row[idxLocation].trim() : '未定',
+                        intro: idxIntro !== -1 ? row[idxIntro].trim() : '',
+                        accessories: idxAccessories !== -1 ? row[idxAccessories].trim() : '',
+                        flow: idxFlow !== -1 ? row[idxFlow].trim() : '',
+                        features: idxFeatures !== -1 ? row[idxFeatures].trim() : '',
+                        status: '可借用'
+                    });
+                    importedCount++;
+                }
+
+                if (importedCount > 0) {
+                    await batch.commit();
+                    showToast(`🎉 成功與雲端資料庫完成對齊，匯入 ${importedCount} 筆館藏！`);
+                } else {
+                    showToast("未找到可匯入的有效行數據。", "error");
+                }
+            };
+            reader.readAsText(file, "UTF-8");
+            e.target.value = ''; // 重設
+        });
+
+        // 輔助函式：正確解析包含雙引號逗號的 CSV 行
+        function parseCSVRow(text) {
+            const result = [];
+            let insideQuote = false;
+            let entry = '';
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                if (char === '"') {
+                    insideQuote = !insideQuote;
+                } else if (char === ',' && !insideQuote) {
+                    result.push(entry.trim());
+                    entry = '';
+                } else {
+                    entry += char;
+                }
+            }
+            result.push(entry.trim());
+            return result;
+        }
+
+        // 核心：🗑️ 雲端全清除
+        document.getElementById('toolBtn-clearAll').addEventListener('click', async () => {
+            if (games.length === 0 && loans.length === 0) {
+                showToast("當前雲端中已無任何資料！");
+                return;
+            }
+
+            const check = confirm("⚠️ 警告：這將會永久抹除您 Firebase 雲端資料庫中所有的【館藏桌遊】與【借閱紀錄】！此操作無法復原。是否確認清除？");
+            if (check) {
+                const checkDouble = confirm("請再次確認：您確定要將雲端全部清空嗎？");
+                if (checkDouble) {
+                    try {
+                        const batch = writeBatch(db);
+                        // 清除桌遊
+                        games.forEach(g => {
+                            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'games', g.id);
+                            batch.delete(ref);
+                        });
+                        // 清除借閱
+                        loans.forEach(l => {
+                            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id);
+                            batch.delete(ref);
+                        });
+                        await batch.commit();
+                        showToast("💥 雲端資料庫已徹底重置清空！");
+                    } catch (err) {
+                        console.error("重置清空出錯:", err);
+                        showToast("執行清空時發生雲端錯誤。", "error");
+                    }
+                }
+            }
+        });
+
+        // 核心：📤 匯出 CSV (包含全新四維結構化欄位，含 UTF-8 BOM 防止 Excel 亂碼)
+        document.getElementById('toolBtn-export').addEventListener('click', () => {
+            if (games.length === 0) {
+                showToast("無館藏數據可供匯出！", "error");
+                return;
+            }
+
+            const headers = ['館藏編號', '桌遊名稱', '分類領域', '遊玩人數', '存放位置', '狀態', '遊戲簡介', '遊戲配件', '遊戲流程', '遊戲特色'];
+            const rows = games.map(g => [
+                g.code || '',
+                g.name || '',
+                g.category || '',
+                g.players || '',
+                g.location || '',
+                g.status || '可借用',
+                g.intro || '',
+                g.accessories || '',
+                g.flow || '',
+                g.features || ''
+            ]);
+
+            const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(e => e.map(val => `"${val.replace(/"/g, '""')}"`).join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `學習中心館藏桌遊清單_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("📤 CSV 檔案匯出打包成功！");
+        });
+
+        // 彈出視窗開關
+        function openAddGameModal() {
+            document.getElementById('gameForm').reset();
+            document.getElementById('editGameId').value = '';
+            document.getElementById('gameModalTitle').innerText = "新增桌遊館藏";
+            document.getElementById('gameModal').classList.remove('hidden');
+        }
+
+        function openEditGameModal(gameId) {
+            const game = games.find(g => g.id === gameId);
+            if (!game) return;
+
+            document.getElementById('editGameId').value = game.id;
+            document.getElementById('formCode').value = game.code || '';
+            document.getElementById('formName').value = game.name || '';
+            document.getElementById('formCategory').value = game.category || '';
+            document.getElementById('formPlayers').value = game.players || '';
+            document.getElementById('formLocation').value = game.location || '';
+            
+            // 四大結構化欄位帶入
+            document.getElementById('formIntro').value = game.intro || '';
+            document.getElementById('formAccessories').value = game.accessories || '';
+            document.getElementById('formFlow').value = game.flow || '';
+            document.getElementById('formFeatures').value = game.features || '';
+
+            document.getElementById('gameModalTitle').innerText = "編輯桌遊資訊";
+            document.getElementById('gameModal').classList.remove('hidden');
+        }
+
+        function closeGameModal() {
+            document.getElementById('gameModal').classList.add('hidden');
+        }
+
+        function openBorrowModal(gameId) {
+            const game = games.find(g => g.id === gameId);
+            if (!game || game.status !== '可借用') return;
+
+            document.getElementById('borrowForm').reset();
+            document.getElementById('borrowGameId').value = game.id;
+            document.getElementById('borrowGameName').innerText = game.name;
+            document.getElementById('borrowGameCode').innerText = game.code || '未編碼';
+
+            // 預設借期設定
+            const today = new Date();
+            const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            document.getElementById('borrowDate').value = today.toISOString().split('T')[0];
+            document.getElementById('dueDate').value = nextWeek.toISOString().split('T')[0];
+
+            document.getElementById('borrowModal').classList.remove('hidden');
+        }
+
+        function closeBorrowModal() {
+            document.getElementById('borrowModal').classList.add('hidden');
+        }
+
+        function openReturnModal(loan) {
+            document.getElementById('returnForm').reset();
+            document.getElementById('returnLoanId').value = loan.id;
+            document.getElementById('returnGameId').value = loan.gameId;
+            document.getElementById('returnGameName').innerText = loan.gameName;
+            document.getElementById('returnGameCode').innerText = loan.gameCode || '未編碼';
+            document.getElementById('returnBorrowerInfo').innerText = `借閱人: ${loan.borrowerName} (${loan.borrowerPhone})`;
+
+            // 預設配件點收狀況為良好
+            selectCondition('良好');
+            document.getElementById('returnModal').classList.remove('hidden');
+        }
+
+        function closeReturnModal() {
+            document.getElementById('returnModal').classList.add('hidden');
+        }
+
+        function selectCondition(cond) {
+            selectedReturnCondition = cond;
+            document.querySelectorAll('.cond-btn').forEach(btn => {
+                if (btn.getAttribute('data-cond') === cond) {
+                    btn.className = "cond-btn py-2.5 px-1 rounded-xl text-xs font-semibold border transition-all border-brand-600 bg-brand-50 text-brand-700";
+                } else {
+                    btn.className = "cond-btn py-2.5 px-1 rounded-xl text-xs font-semibold border transition-all border-slate-200 bg-white hover:bg-slate-50 text-slate-600";
+                }
+            });
+        }
+
+        // 自訂無阻塞訊息提示
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = "flex items-center gap-3 p-4 rounded-xl shadow-2xl bg-white border border-slate-100 modal-animate max-w-sm pointer-events-auto";
+            
+            const isSuccess = type === 'success';
+            const iconSvg = isSuccess 
+                ? `<svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`
+                : `<svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`;
+
+            toast.innerHTML = `
+                <div class="flex-shrink-0 p-1.5 ${isSuccess ? 'bg-brand-50':'bg-rose-50'} rounded-lg">${iconSvg}</div>
+                <div class="text-xs sm:text-sm font-semibold text-slate-700">${message}</div>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.4s ease';
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
+        // 切換控制台分頁
+        function setTab(tabId) {
+            const gamesBtn = document.getElementById('tabBtn-games');
+            const loansBtn = document.getElementById('tabBtn-loans');
+            const historyBtn = document.getElementById('tabBtn-history');
+
+            const gamesPane = document.getElementById('pane-games');
+            const loansPane = document.getElementById('pane-loans');
+            const historyPane = document.getElementById('pane-history');
+
+            // 狀態歸一
+            gamesBtn.className = "px-4 py-2 rounded-lg text-slate-500 hover:text-slate-800";
+            loansBtn.className = "px-4 py-2 rounded-lg text-slate-500 hover:text-slate-800";
+            historyBtn.className = "px-4 py-2 rounded-lg text-slate-500 hover:text-slate-800";
+
+            gamesPane.classList.add('hidden');
+            loansPane.classList.add('hidden');
+            historyPane.classList.add('hidden');
+
+            if (tabId === 'games') {
+                gamesBtn.className = "px-4 py-2 rounded-lg bg-white text-brand-700 shadow-sm";
+                gamesPane.classList.remove('hidden');
+            } else if (tabId === 'loans') {
+                loansBtn.className = "px-4 py-2 rounded-lg bg-white text-brand-700 shadow-sm";
+                loansPane.classList.remove('hidden');
+            } else if (tabId === 'history') {
+                historyBtn.className = "px-4 py-2 rounded-lg bg-white text-brand-700 shadow-sm";
+                historyPane.classList.remove('hidden');
+            }
+        }
+
+        // 初始化常規 DOM 與事件
+        window.addEventListener('load', () => {
+            initFirebase();
+
+            // 工具列按鈕事件掛載
+            document.getElementById('toolBtn-add').addEventListener('click', openAddGameModal);
+
+            // 分頁點擊事件掛載
+            document.getElementById('tabBtn-games').addEventListener('click', () => setTab('games'));
+            document.getElementById('tabBtn-loans').addEventListener('click', () => setTab('loans'));
+            document.getElementById('tabBtn-history').addEventListener('click', () => setTab('history'));
+
+            // 關閉 Modal 事件
+            document.getElementById('closeGameModalBtn').addEventListener('click', closeGameModal);
+            document.getElementById('cancelGameBtn').addEventListener('click', closeGameModal);
+            
+            document.getElementById('closeBorrowModalBtn').addEventListener('click', closeBorrowModal);
+            document.getElementById('cancelBorrowBtn').addEventListener('click', closeBorrowModal);
+            
+            document.getElementById('closeReturnModalBtn').addEventListener('click', closeReturnModal);
+            document.getElementById('cancelReturnBtn').addEventListener('click', closeReturnModal);
+
+            // 搜尋與篩選事件
+            document.getElementById('gameSearchInput').addEventListener('input', renderGamesTable);
+            document.getElementById('gameCatSelect').addEventListener('change', renderGamesTable);
+            document.getElementById('gameStateSelect').addEventListener('change', renderGamesTable);
+
+            // 歸還物況按鈕事件
+            document.querySelectorAll('.cond-btn').forEach(btn => {
+                btn.addEventListener('click', () => selectCondition(btn.getAttribute('data-cond')));
+            });
+        });
+    </script>
+</body>
+</html>

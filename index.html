@@ -1,52 +1,691 @@
-<!-- ... existing code ... -->
-        function setupListeners() {
-            if (!db) return;
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學習中心教育桌遊館藏查詢系統</title>
+    
+    <!-- 載入極致質感的 Tailwind CSS 與優化視覺的 Google Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
-            // RULE 1: Strict Paths
-            const gamesCol = collection(db, 'artifacts', appId, 'public', 'data', 'games');
-            onSnapshot(gamesCol, (snapshot) => {
-                const tempGames = [];
-                snapshot.forEach(doc => {
-                    tempGames.push({ ...doc.data(), id: doc.id });
-                });
-                // 修正：將原本依照時間倒序排序，改為依照館藏編號「由小至大（正序）」排列
-                games = tempGames.sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' }));
-                updateUI();
-            }, (err) => {
-                console.error("查詢端加載館藏出錯:", err);
-            });
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 
-            // RULE 1: Strict Paths
-<!-- ... existing code ... -->
-```
-eof
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* 美化系統滾動條 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* 卡片與彈窗細緻渲染動畫 */
+        .modal-animate {
+            animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.96) translateY(8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 antialiased flex flex-col justify-between">
 
-```html:學習中心教育桌遊管理系統 (管理者控制台):admin.html
-<!-- ... existing code ... -->
+    <!-- 自訂訊息通知容器 -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- 頂部高質感導覽列 -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-gradient-to-tr from-brand-500 to-teal-600 rounded-xl text-white shadow-md shadow-emerald-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold bg-gradient-to-r from-brand-600 to-teal-700 bg-clip-text text-transparent">
+                        學習中心教育桌遊館藏查詢系統
+                    </h1>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] sm:text-xs text-slate-500">Learning Center Board Game Catalog</span>
+                        <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded-full font-medium">
+                            🔒 唯讀查詢模式
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 雲端同步狀態燈號 -->
+            <div class="flex items-center gap-2">
+                <div id="statusIndicator" class="flex items-center gap-1.5 bg-rose-50 text-rose-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-rose-100 transition-all">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse inline-block"></span>
+                    <span id="statusIndicatorText">🔌 雲端未連線</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主內容區 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+        
+        <!-- 導引說明橫幅 -->
+        <div class="mb-6 p-4 bg-brand-50/70 border border-brand-100 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-start gap-3">
+                <div class="p-1.5 bg-brand-100 rounded-lg text-brand-700 mt-0.5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-brand-900">💡 歡迎使用學習中心桌遊線上型錄</h4>
+                    <p class="text-xs text-brand-700 mt-0.5 leading-relaxed">
+                        本頁面提供即時的桌遊在庫狀態、櫃位與適用人數查詢。如需辦理登記借閱或歸還手續，請洽學習中心管理人員協助。
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-400 bg-white border border-slate-100 px-2.5 py-1 rounded-xl shadow-sm" id="syncStatusTime">
+                    資料時間: --:--:--
+                </span>
+            </div>
+        </div>
+
+        <!-- 數據統計板 -->
+        <div class="grid grid-cols-3 gap-4 mb-8">
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
+                <div>
+                    <p class="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider">總館藏數量</p>
+                    <h3 class="text-base sm:text-2xl font-black text-slate-800 mt-1" id="statTotal">0 套</h3>
+                </div>
+                <div class="p-2 sm:p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </div>
+            </div>
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
+                <div>
+                    <p class="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider">目前可供借用</p>
+                    <h3 class="text-base sm:text-2xl font-black text-emerald-600 mt-1" id="statAvailable">0 套</h3>
+                </div>
+                <div class="p-2 sm:p-3 bg-brand-50 text-brand-600 rounded-xl">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </div>
+            </div>
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
+                <div>
+                    <p class="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider">已被登記出借</p>
+                    <h3 class="text-base sm:text-2xl font-black text-amber-600 mt-1" id="statBorrowed">0 套</h3>
+                </div>
+                <div class="p-2 sm:p-3 bg-amber-50 text-amber-500 rounded-xl">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制與過濾列 -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-5 mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <!-- 搜尋框 -->
+            <div class="relative flex-1 max-w-md">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </span>
+                <input type="text" id="searchInput" placeholder="快速搜尋編號、桌遊名稱、特色或櫃位..." class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-slate-50/50">
+            </div>
+
+            <!-- 篩選器與檢視切換 -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- 分類篩選 -->
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-xs text-slate-600 shadow-sm">
+                    <span class="font-medium text-slate-400">分類:</span>
+                    <select id="categorySelect" class="focus:outline-none bg-transparent font-medium">
+                        <option value="">全部分類</option>
+                    </select>
+                </div>
+
+                <!-- 狀態篩選 -->
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-xs text-slate-600 shadow-sm">
+                    <span class="font-medium text-slate-400">狀態:</span>
+                    <select id="statusSelect" class="focus:outline-none bg-transparent font-medium">
+                        <option value="">全部狀態</option>
+                        <option value="可借用">可借用</option>
+                        <option value="出借中">出借中</option>
+                    </select>
+                </div>
+
+                <!-- 清除篩選 -->
+                <button id="resetFiltersBtn" class="text-xs text-rose-500 hover:text-rose-600 font-semibold px-2 transition-colors">
+                    重設
+                </button>
+
+                <div class="w-px h-6 bg-slate-200 hidden sm:block"></div>
+
+                <!-- 檢視切換 (卡片 Grid / 列表 List) -->
+                <div class="flex bg-slate-100 p-1 rounded-xl">
+                    <button id="viewBtn-grid" class="p-1.5 rounded-lg transition-all text-brand-700 bg-white shadow-sm" title="網格卡片檢視">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"/></svg>
+                    </button>
+                    <button id="viewBtn-list" class="p-1.5 rounded-lg transition-all text-slate-500" title="條列明細檢視">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主內容顯示區 -->
+        <div id="contentContainer">
+            <!-- 卡片網格檢視 (預設) -->
+            <div id="gridView" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+
+            <!-- 列表清單檢視 -->
+            <div id="listView" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                <th class="px-6 py-4">館藏編號</th>
+                                <th class="px-6 py-4">桌遊名稱</th>
+                                <th class="px-6 py-4">分類類別</th>
+                                <th class="px-6 py-4">遊玩人數</th>
+                                <th class="px-6 py-4">存放位置</th>
+                                <th class="px-6 py-4">借閱狀態與日程</th>
+                                <th class="px-6 py-4 text-right">詳細</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 空狀態提示 -->
+            <div id="emptyState" class="hidden py-24 bg-white rounded-2xl border border-slate-200/80 shadow-sm text-center text-slate-400">
+                <div class="text-4xl mb-3">🔍</div>
+                <div class="text-lg font-medium text-slate-600 mb-1">找不到符合的館藏項目</div>
+                <div class="text-xs text-slate-400">試試調整您的關鍵字或分類篩選條件</div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 彈出視窗：桌遊詳細四維資訊面板 -->
+    <div id="detailsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden modal-animate flex flex-col">
+            <!-- 彈窗頂部 -->
+            <div class="bg-gradient-to-r from-brand-600 to-teal-700 p-6 text-white relative">
+                <button id="closeModalBtn" class="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-all">✕</button>
+                <div class="inline-block bg-white/20 text-white text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider font-mono mb-2" id="modalGameCode">CODE</div>
+                <h3 class="font-bold text-xl sm:text-2xl leading-tight" id="modalGameName">桌遊名稱</h3>
+                <p class="text-xs text-brand-100 mt-1" id="modalGameCategory">分類領域</p>
+            </div>
+
+            <!-- 彈窗內容：優雅分流四大結構欄位 -->
+            <div class="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
+                <!-- 基本規格 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-3 bg-slate-50 rounded-xl">
+                        <span class="text-[10px] text-slate-400 font-bold block">適合人數</span>
+                        <span class="text-sm font-semibold text-slate-700" id="modalGamePlayers">--</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-xl">
+                        <span class="text-[10px] text-slate-400 font-bold block">存放櫃位</span>
+                        <span class="text-sm font-semibold text-slate-700" id="modalGameLocation">--</span>
+                    </div>
+                </div>
+
+                <!-- 狀態資訊 -->
+                <div class="p-4 rounded-xl border border-slate-100 flex items-center justify-between" id="modalStatusContainer">
+                    <div>
+                        <span class="text-[10px] text-slate-400 font-bold block">目前在庫狀態</span>
+                        <span class="text-sm font-bold" id="modalGameStatus">狀態</span>
+                    </div>
+                    <div id="modalReturnSection" class="text-right"></div>
+                </div>
+
+                <!-- 四維結構化特色欄位顯示 -->
+                <div class="space-y-3">
+                    <!-- 1. 遊戲簡介 -->
+                    <div class="border-l-4 border-emerald-500 pl-3 py-1 bg-emerald-50/20 rounded-r-xl">
+                        <span class="text-[10px] font-bold text-emerald-700 block mb-0.5">📋 遊戲簡介</span>
+                        <div class="text-slate-600 text-xs sm:text-sm leading-relaxed" id="modalGameIntro">-</div>
+                    </div>
+                    <!-- 2. 遊戲配件 -->
+                    <div class="border-l-4 border-sky-500 pl-3 py-1 bg-sky-50/20 rounded-r-xl">
+                        <span class="text-[10px] font-bold text-sky-700 block mb-0.5">📦 遊戲配件</span>
+                        <div class="text-slate-600 text-xs sm:text-sm leading-relaxed" id="modalGameAccessories">-</div>
+                    </div>
+                    <!-- 3. 遊戲流程 -->
+                    <div class="border-l-4 border-purple-500 pl-3 py-1 bg-purple-50/20 rounded-r-xl">
+                        <span class="text-[10px] font-bold text-purple-700 block mb-0.5">🔄 遊戲流程</span>
+                        <div class="text-slate-600 text-xs sm:text-sm leading-relaxed" id="modalGameFlow">-</div>
+                    </div>
+                    <!-- 4. 遊戲特色 -->
+                    <div class="border-l-4 border-amber-500 pl-3 py-1 bg-amber-50/20 rounded-r-xl">
+                        <span class="text-[10px] font-bold text-amber-700 block mb-0.5">✨ 遊戲特色</span>
+                        <div class="text-slate-600 text-xs sm:text-sm leading-relaxed" id="modalGameFeatures">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 彈窗底部 -->
+            <div class="border-t border-slate-100 p-4 bg-slate-50/50 flex gap-3">
+                <button id="closeModalBottomBtn" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2.5 rounded-xl text-sm transition-colors text-center">
+                    關閉視窗
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁尾 -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-xs text-slate-400">學習中心教育桌遊館藏與借閱管理系統 (唯讀查詢端) © 2026. All rights reserved.</p>
+            <p class="text-[10px] text-slate-300 mt-1">智慧雲端同步驅動引擎 ☁️ Google Firebase Firestore</p>
+        </div>
+    </footer>
+
+    <!-- 引入 Firebase 模組與查詢端主程序 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // 智慧金鑰配置區 (已為您完美嵌入)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDK458yVOxDiaM_k78HpL7R9S8Z0ntrEUM",
+            authDomain: "learning-center-games.firebaseapp.com",
+            projectId: "learning-center-games",
+            storageBucket: "learning-center-games.firebasestorage.app",
+            messagingSenderId: "639548693687",
+            appId: "1:639548693687:web:2d4d89ffb9ee6c84994132",
+            measurementId: "G-CZ3YN0B59R"
+        };
+
+        let db, auth;
+        let games = [];
+        let loans = [];
+        let currentViewMode = 'grid';
+
+        const appId = firebaseConfig.projectId;
+
+        // 初始化 Firebase
+        async function initFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // 進行匿名認證
+                await signInAnonymously(auth);
+                
+                // 更新狀態指示燈為綠色
+                const statusIndicator = document.getElementById('statusIndicator');
+                statusIndicator.className = "flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-emerald-100 transition-all";
+                document.getElementById('statusIndicatorText').innerText = "☁️ 雲端即時同步中";
+
+                setupFirebaseListeners();
+            } catch (err) {
+                console.error("Firebase 連線初始化失敗:", err);
+                showToast("⚠️ 雲端連線失敗，請檢查 Firebase 配置設定！", "error");
+            }
+        }
+
+        // 設定雲端即時動態監聽
         function setupFirebaseListeners() {
             if (!db) return;
 
-            // RULE 1: Strict Paths
+            // 監聽桌遊集合 (依據路徑標準：/artifacts/{appId}/public/data/games)
             const gamesCol = collection(db, 'artifacts', appId, 'public', 'data', 'games');
             onSnapshot(gamesCol, (snapshot) => {
                 const tempGames = [];
                 snapshot.forEach(doc => {
                     tempGames.push({ ...doc.data(), id: doc.id });
                 });
-                // 修正：將原本依照時間倒序排序，改為依照館藏編號「由小至大（正序）」排列
+                
+                // 修正：依館藏編號「由小至大（正序）」進行自然數值排列
                 games = tempGames.sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' }));
-                updateAllUI();
+                
+                updateUI();
+                updateTimestamp();
             }, (err) => {
-                console.error("讀取館藏發生錯誤:", err);
+                console.error("讀取館藏錯誤:", err);
             });
 
-            // RULE 1: Strict Paths
-<!-- ... existing code ... -->
-```
-eof
+            // 監聽借用集合 (依據路徑標準：/artifacts/{appId}/public/data/loans)
+            const loansCol = collection(db, 'artifacts', appId, 'public', 'data', 'loans');
+            onSnapshot(loansCol, (snapshot) => {
+                const tempLoans = [];
+                snapshot.forEach(doc => {
+                    tempLoans.push({ ...doc.data(), id: doc.id });
+                });
+                loans = tempLoans;
+                updateUI();
+            }, (err) => {
+                console.error("讀取借用紀錄錯誤:", err);
+            });
+        }
 
-### ⚙️ 本次優化成效：
-1. **依編號精準正序排列**：系統會自動抓取 `games` 中的 `code`（編號）進行自然數值排序（由小至大）。當雲端同步或 Excel 匯入完成後，不論輸入順序為何，前台與後台表格皆會自動以 `LE-001`、`LE-002`、`LE-003`... 的順序美觀呈現！
-2. **防呆排序邏輯**：即使未來加入包含其他英文英文字母的代碼（如 `AV-01`, `CT-02`），系統亦能完美在 A-Z 及數字序列中完成流暢的遞增排序。
+        // 核心渲染程序
+        function updateUI() {
+            calculateStats();
+            renderCategorySelect();
+            renderGames();
+        }
 
-您現在可以按下右側的 **Preview** 重新預覽，您將會發現所有桌遊項目都已經整齊地由小到大排列好了！
+        function updateTimestamp() {
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            document.getElementById('syncStatusTime').innerText = `資料時間: ${timeStr}`;
+        }
+
+        function calculateStats() {
+            const total = games.length;
+            const available = games.filter(g => g.status === '可借用').length;
+            const borrowed = games.filter(g => g.status === '出借中').length;
+
+            document.getElementById('statTotal').innerText = `${total} 套`;
+            document.getElementById('statAvailable').innerText = `${available} 套`;
+            document.getElementById('statBorrowed').innerText = `${borrowed} 套`;
+        }
+
+        function renderCategorySelect() {
+            const select = document.getElementById('categorySelect');
+            const currentSelected = select.value;
+            const cats = [...new Set(games.map(g => g.category).filter(Boolean))];
+            
+            select.innerHTML = '<option value="">全部分類</option>';
+            cats.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.innerText = cat;
+                if (cat === currentSelected) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        // 篩選與過濾
+        function getFilteredGames() {
+            const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+            const categoryFilter = document.getElementById('categorySelect').value;
+            const statusFilter = document.getElementById('statusSelect').value;
+
+            return games.filter(g => {
+                const matchesSearch = 
+                    (g.name || '').toLowerCase().includes(searchQuery) ||
+                    (g.code || '').toLowerCase().includes(searchQuery) ||
+                    (g.features || '').toLowerCase().includes(searchQuery) ||
+                    (g.location || '').toLowerCase().includes(searchQuery);
+                const matchesCategory = categoryFilter ? g.category === categoryFilter : true;
+                const matchesStatus = statusFilter ? g.status === statusFilter : true;
+                return matchesSearch && matchesCategory && matchesStatus;
+            });
+        }
+
+        // 渲染主型錄看板
+        function renderGames() {
+            const filtered = getFilteredGames();
+            const gridContainer = document.getElementById('gridView');
+            const listTableBody = document.getElementById('listTableBody');
+            const emptyState = document.getElementById('emptyState');
+
+            gridContainer.innerHTML = '';
+            listTableBody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            filtered.forEach(game => {
+                const isAvailable = game.status === '可借用';
+                const activeLoan = loans.find(l => l.gameId === game.id && l.status === '出借中');
+                const dueDateText = activeLoan ? activeLoan.dueDate : null;
+
+                // 1. 卡片網格介面
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden card-hover flex flex-col justify-between p-5";
+                
+                let statusBadge = isAvailable
+                    ? `<span class="inline-flex items-center gap-1 bg-brand-50 text-brand-600 text-[10px] px-2.5 py-1 rounded-full font-bold">● 可借用</span>`
+                    : `<span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] px-2.5 py-1 rounded-full font-bold">● 出借中</span>`;
+
+                let returnDateBadge = (!isAvailable && dueDateText) 
+                    ? `<div class="text-[10px] text-amber-600 mt-1.5 font-medium flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        預計歸還：${dueDateText}
+                       </div>`
+                    : '';
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between gap-2 mb-3">
+                            <span class="text-[10px] font-mono font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md">${game.code || '-'}</span>
+                            ${statusBadge}
+                        </div>
+                        <h4 class="font-bold text-slate-900 text-base mb-1 line-clamp-1">${game.name}</h4>
+                        <div class="flex items-center gap-1.5 mb-3 flex-wrap">
+                            ${game.category ? `<span class="bg-brand-50/50 text-brand-700 text-[10px] px-2 py-0.5 rounded-md font-semibold">${game.category}</span>` : ''}
+                            ${game.players ? `<span class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded-md font-medium">👥 ${game.players}</span>` : ''}
+                        </div>
+                        <p class="text-slate-400 text-xs line-clamp-2 leading-relaxed mb-4">${game.intro || '點擊「查看詳情」深入瞭解此桌遊的特色與玩法重點！'}</p>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                            <span class="text-[9px] text-slate-400 font-bold block uppercase">存放位置</span>
+                            <span class="text-xs font-semibold text-slate-700">${game.location || '未定'}</span>
+                            ${returnDateBadge}
+                        </div>
+                        <button class="view-detail-btn text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition-colors" data-id="${game.id}">
+                            查看詳情
+                        </button>
+                    </div>
+                `;
+                gridContainer.appendChild(card);
+
+                // 2. 列表明細介面
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/50 transition-colors cursor-pointer";
+                tr.setAttribute('data-id', game.id);
+
+                let listStatusDesc = isAvailable
+                    ? `<span class="inline-flex items-center gap-1 bg-brand-50 text-brand-600 text-xs px-2.5 py-0.5 rounded-full font-semibold">● 可借用</span>`
+                    : `<div class="flex flex-col">
+                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-xs px-2.5 py-0.5 rounded-full font-semibold w-max">● 出借中</span>
+                        ${dueDateText ? `<span class="text-[10px] text-amber-500 mt-1 font-mono">📅 預計歸還: ${dueDateText}</span>` : ''}
+                       </div>`;
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-mono text-xs font-semibold text-slate-600">${game.code || '-'}</td>
+                    <td class="px-6 py-4 font-bold text-slate-900">${game.name}</td>
+                    <td class="px-6 py-4">
+                        ${game.category ? `<span class="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-lg">${game.category}</span>` : '-'}
+                    </td>
+                    <td class="px-6 py-4 text-slate-600">${game.players || '-'}</td>
+                    <td class="px-6 py-4 text-slate-600">${game.location || '未定'}</td>
+                    <td class="px-6 py-4">${listStatusDesc}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button class="text-slate-400 hover:text-brand-600 p-1.5 rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </td>
+                `;
+                listTableBody.appendChild(tr);
+            });
+
+            // 掛載查看詳細監聽事件
+            document.querySelectorAll('.view-detail-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openDetailsModal(btn.getAttribute('data-id'));
+                });
+            });
+
+            document.querySelectorAll('#listTableBody tr').forEach(row => {
+                row.addEventListener('click', () => {
+                    openDetailsModal(row.getAttribute('data-id'));
+                });
+            });
+        }
+
+        // 打開彈出式詳細面板（支援四維結構化欄位分流）
+        function openDetailsModal(gameId) {
+            const game = games.find(g => g.id === gameId);
+            if (!game) return;
+
+            document.getElementById('modalGameCode').innerText = game.code || 'CODE';
+            document.getElementById('modalGameName').innerText = game.name;
+            document.getElementById('modalGameCategory').innerText = game.category || '未分類領域';
+            document.getElementById('modalGamePlayers').innerText = game.players || '無限制';
+            document.getElementById('modalGameLocation').innerText = game.location || '櫃位未定';
+
+            // 寫入四個結構化欄位
+            document.getElementById('modalGameIntro').innerText = game.intro || '尚未登錄說明。';
+            document.getElementById('modalGameAccessories').innerText = game.accessories || '尚未登記清單。';
+            document.getElementById('modalGameFlow').innerText = game.flow || '尚無遊玩流程描述。';
+            document.getElementById('modalGameFeatures').innerText = game.features || '尚無教學特色備註。';
+
+            const statusContainer = document.getElementById('modalStatusContainer');
+            const statusLabel = document.getElementById('modalGameStatus');
+            const returnSection = document.getElementById('modalReturnSection');
+
+            const isAvailable = game.status === '可借用';
+            
+            if (isAvailable) {
+                statusContainer.className = "p-4 rounded-xl border border-brand-100 bg-brand-50/40 flex items-center justify-between";
+                statusLabel.innerText = "綠色在庫 ● 可申請借閱";
+                statusLabel.className = "text-sm font-bold text-brand-700";
+                returnSection.innerHTML = `
+                    <span class="text-xs bg-brand-100 text-brand-700 px-3 py-1.5 rounded-lg font-bold">可供借出</span>
+                `;
+            } else {
+                statusContainer.className = "p-4 rounded-xl border border-amber-100 bg-amber-50/30 flex items-center justify-between";
+                statusLabel.innerText = "已被借閱 ● 借出中";
+                statusLabel.className = "text-sm font-bold text-amber-700";
+
+                const activeLoan = loans.find(l => l.gameId === game.id && l.status === '出借中');
+                if (activeLoan) {
+                    returnSection.innerHTML = `
+                        <span class="text-[10px] text-slate-400 font-bold block">預計歸還日</span>
+                        <span class="text-xs font-bold text-amber-700 font-mono">${activeLoan.dueDate}</span>
+                    `;
+                } else {
+                    returnSection.innerHTML = `
+                        <span class="text-[10px] text-slate-400 font-bold block">歸還排程</span>
+                        <span class="text-xs font-bold text-slate-600">無日程備份</span>
+                    `;
+                }
+            }
+
+            document.getElementById('detailsModal').classList.remove('hidden');
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('detailsModal').classList.add('hidden');
+        }
+
+        // 檢視模式切換
+        function setViewMode(mode) {
+            currentViewMode = mode;
+            const gridBtn = document.getElementById('viewBtn-grid');
+            const listBtn = document.getElementById('viewBtn-list');
+            const gridView = document.getElementById('gridView');
+            const listView = document.getElementById('listView');
+
+            if (mode === 'grid') {
+                gridBtn.className = "p-1.5 rounded-lg transition-all text-brand-700 bg-white shadow-sm";
+                listBtn.className = "p-1.5 rounded-lg transition-all text-slate-500";
+                gridView.classList.remove('hidden');
+                listView.classList.add('hidden');
+            } else {
+                gridBtn.className = "p-1.5 rounded-lg transition-all text-slate-500";
+                listBtn.className = "p-1.5 rounded-lg transition-all text-brand-700 bg-white shadow-sm";
+                gridView.classList.add('hidden');
+                listView.classList.remove('hidden');
+            }
+        }
+
+        // 自訂非阻塞 Toast 提示
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = "flex items-center gap-3 p-4 rounded-xl shadow-2xl bg-white border border-slate-100 modal-animate max-w-sm pointer-events-auto";
+            
+            const isSuccess = type === 'success';
+            const iconSvg = isSuccess 
+                ? `<svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`
+                : `<svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`;
+
+            toast.innerHTML = `
+                <div class="flex-shrink-0 p-1.5 ${isSuccess ? 'bg-brand-50':'bg-rose-50'} rounded-lg">${iconSvg}</div>
+                <div class="text-xs sm:text-sm font-semibold text-slate-700">${message}</div>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.4s ease';
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
+        // 初始化掛載與監聽
+        window.addEventListener('load', () => {
+            initFirebase();
+
+            // 掛載常規事件監聽器
+            document.getElementById('searchInput').addEventListener('input', renderGames);
+            document.getElementById('categorySelect').addEventListener('change', renderGames);
+            document.getElementById('statusSelect').addEventListener('change', renderGames);
+            
+            document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+                document.getElementById('searchInput').value = '';
+                document.getElementById('categorySelect').value = '';
+                document.getElementById('statusSelect').value = '';
+                renderGames();
+            });
+
+            document.getElementById('viewBtn-grid').addEventListener('click', () => setViewMode('grid'));
+            document.getElementById('viewBtn-list').addEventListener('click', () => setViewMode('list'));
+
+            document.getElementById('closeModalBtn').addEventListener('click', closeDetailsModal);
+            document.getElementById('closeModalBottomBtn').addEventListener('click', closeDetailsModal);
+        });
+    </script>
+</body>
+</html>
