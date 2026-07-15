@@ -7,7 +7,6 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- 引入 SheetJS 解析本地上傳之 Excel (含智慧欄位配對) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <script>
@@ -65,7 +64,7 @@
 <body class="min-h-screen text-slate-800 antialiased flex flex-col justify-between">
 
     <!-- 全域載入遮罩 -->
-    <div id="loadingOverlay" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm transition-all">
+    <div id="loadingOverlay" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 max-w-xs w-full text-center">
             <div class="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
             <div>
@@ -97,6 +96,7 @@
         </div>
     </div>
 
+    <!-- 頂部列 -->
     <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -118,29 +118,13 @@
                 <input type="file" id="csvFileInput" accept=".csv" class="hidden" />
                 <span id="syncModeIndicator" class="text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-                    <span>等待金鑰配置...</span>
+                    <span>雲端同步檢查中...</span>
                 </span>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full space-y-6">
-
-        <!-- 未配置雲端資料庫提示區 -->
-        <div id="noConfigWarning" class="hidden p-8 bg-gradient-to-br from-slate-900 via-slate-800 to-zinc-900 border border-slate-700 rounded-3xl text-white shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8">
-            <div class="space-y-2 text-center md:text-left">
-                <h3 class="text-lg font-bold flex items-center justify-center md:justify-start gap-2">
-                    <span>🔌</span>
-                    <span>尚未在 HTML 程式碼中配置 Firebase 雲端金鑰</span>
-                </h3>
-                <p class="text-xs text-slate-300 max-w-2xl leading-relaxed">
-                    本系統為純雲端發布版。為了讓手機、電腦能同步讀寫一致的數據，請使用任何文字編輯器打開此 HTML 檔案，並在程式碼最前方的「金鑰填寫專區」填入您在 Google Firebase Console 所申請的 Web Config 物件！
-                </p>
-            </div>
-            <span class="bg-amber-500 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-2xl shadow-lg select-none">
-                請參考部署指南操作 ➔
-            </span>
-        </div>
 
         <!-- 數據統計板 -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="statsDashboard">
@@ -183,6 +167,7 @@
         </div>
 
         <div class="space-y-6">
+            <!-- 標籤分頁列 -->
             <div class="flex border-b border-slate-200 overflow-x-auto whitespace-nowrap">
                 <button onclick="switchAdminTab('dashboard')" id="tabBtn-dashboard" class="flex items-center gap-2 py-3 px-5 border-b-2 font-semibold text-sm transition-all border-brand-500 text-brand-600">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"/></svg>
@@ -262,6 +247,7 @@
 
             <!-- Tab 2: 教育館藏列表 -->
             <div id="tabContent-games" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <!-- 工具選單：按鈕對齊為 🗑️ 雲端全清除 -> 📤 匯出 CSV -> 📥 匯入 CSV -> ➕ 新增單筆 -->
                 <div class="p-5 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-slate-50/50">
                     <div class="relative flex-1 max-w-md">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
@@ -289,12 +275,13 @@
 
                         <div class="h-6 w-px bg-slate-200 hidden xl:block mx-1"></div>
 
+                        <!-- 調整對齊後的按鈕列 -->
                         <button onclick="clearAllLocalData()" class="bg-rose-600 hover:bg-rose-700 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1 transition-colors shadow-sm" title="完全清空館藏資料庫">
                             <span>🗑️ 雲端全清除</span>
                         </button>
 
-                        <button onclick="seedDefaultCSVData()" class="bg-amber-500 hover:bg-amber-600 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1 transition-colors shadow-sm" title="載入預設 12 筆測試桌遊">
-                            <span>💡 雲端預載</span>
+                        <button onclick="exportGamesToCSV()" class="bg-slate-600 hover:bg-slate-700 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1 transition-colors shadow-sm" title="匯出所有館藏至 CSV 備份">
+                            <span>📤 匯出 CSV</span>
                         </button>
 
                         <button onclick="triggerCsvUpload()" class="bg-teal-600 hover:bg-teal-700 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1 transition-colors shadow-sm" title="匯入 Excel/CSV 檔案">
@@ -352,7 +339,7 @@
                     </table>
                     <div id="loansTableEmpty" class="hidden py-20 text-center text-slate-400">
                         <div class="text-lg font-medium mb-1">🎉 目前無任何借出中的桌遊</div>
-                        <div class="text-xs">所有桌遊皆妥善在庫中，您可以點擊「館藏列表」登記借出。</div>
+                        <div class="text-xs">所有桌遊皆妥善在庫中。</div>
                     </div>
                 </div>
             </div>
@@ -388,7 +375,7 @@
                         </table>
                         <div id="historyTableEmpty" class="hidden py-20 text-center text-slate-400">
                             <div class="text-lg font-medium mb-1">無歷史資料</div>
-                            <div class="text-xs">系統進行桌遊登記出借並辦理歸還後，歷史痕跡將詳細記載於此。</div>
+                            <div class="text-xs">辦理歸還後，歷史痕跡將詳細記載於此。</div>
                         </div>
                     </div>
                 </div>
@@ -407,11 +394,11 @@
                 <button onclick="closeAddGameModal()" class="text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors">✕</button>
             </div>
 
-            <form id="addGameForm" onsubmit="handleAddGame(event)" class="p-6 space-y-4">
+            <form id="addGameForm" onsubmit="handleAddGame(event)" class="p-6 space-y-3 overflow-y-auto max-h-[75vh]">
                 <input type="hidden" id="editingGameId">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">館藏編號 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="newGameCode" required placeholder="例如: LE-01" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">館藏編號 (免填自動生成 LE-001)</label>
+                    <input type="text" id="newGameCode" placeholder="例如: LE-001" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
                 </div>
 
                 <div>
@@ -435,9 +422,25 @@
                     <input type="text" id="newGameLocation" placeholder="例如: A區-01櫃" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
                 </div>
 
+                <!-- 拆分後的四大欄位填寫區 -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">📖 遊戲簡介與說明</label>
-                    <textarea id="newGameIntro" placeholder="例如：由以色列人發明，考驗排列組合..." rows="3" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">📖 遊戲簡介</label>
+                    <textarea id="newGameIntro" placeholder="經典數字排列遊戲，結合拉密紙牌與麻將玩法..." rows="2" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">🧩 遊戲配件</label>
+                    <textarea id="newGameAccessories" placeholder="106塊牌、4個牌架、說明書..." rows="2" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">🔄 遊戲流程</label>
+                    <textarea id="newGameFlow" placeholder="1. 隨機抽牌 2. 進行破冰(出牌大於30點) 3. 組合牌組..." rows="2" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">✨ 遊戲特色</label>
+                    <textarea id="newGameFeatures" placeholder="訓練排列組合、強化數理邏輯、老少咸宜..." rows="2" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
                 </div>
 
                 <div class="pt-4 flex gap-3">
@@ -500,7 +503,8 @@
 
     <!-- 彈出視窗 3：辦理歸還入庫 -->
     <div id="returnModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-        <div class="bg-brand-600 p-6 text-white">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden modal-animate">
+            <div class="bg-gradient-to-r from-brand-600 to-teal-700 p-6 text-white">
                 <div class="flex items-center justify-between">
                     <h3 class="font-bold text-lg">歸還確認與狀態檢查</h3>
                     <button onclick="closeReturnModal()" class="text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors">✕</button>
@@ -519,7 +523,7 @@
                     <div class="grid grid-cols-3 gap-2">
                         <button type="button" onclick="setReturnCondition('良好')" id="condBtn-良好" class="py-2 px-1 rounded-xl text-xs font-semibold border transition-all border-brand-600 bg-brand-50 text-brand-700">良好</button>
                         <button type="button" onclick="setReturnCondition('輕微損壞')" id="condBtn-輕微損壞" class="py-2 px-1 rounded-xl text-xs font-semibold border transition-all border-slate-200 bg-white text-slate-600">輕微損壞</button>
-                        <button type="button" onclick="setReturnCondition('遺失/嚴重污損')" id="condBtn-遺失" class="py-2 px-1 rounded-xl text-xs font-semibold border transition-all border-slate-200 bg-white text-slate-600">遺失/嚴重污損</button>
+                        <button type="button" onclick="setReturnCondition('遺失/嚴重污損')" id="condBtn-遺失" class="py-2 px-1 rounded-xl text-xs font-semibold border transition-all border-slate-200 bg-white text-slate-600">遺失/嚴重物損</button>
                     </div>
                 </div>
 
@@ -552,32 +556,26 @@
         // =========================================================================
         // 🔑 【步驟三】雲端金鑰填寫專區（請直接將您的 SDK config 物件貼入下方大括號中）
         // =========================================================================
-       const firebaseConfig = {
-  apiKey: "AIzaSyDK458yVOxDiaM_k78HpL7R9S8Z0ntrEUM",
-  authDomain: "learning-center-games.firebaseapp.com",
-  projectId: "learning-center-games",
-  storageBucket: "learning-center-games.firebasestorage.app",
-  messagingSenderId: "639548693687",
-  appId: "1:639548693687:web:2d4d89ffb9ee6c84994132",
-  measurementId: "G-CZ3YN0B59R"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyDK458yVOxDiaM_k78HpL7R9S8Z0ntrEUM",
+            authDomain: "learning-center-games.firebaseapp.com",
+            projectId: "learning-center-games",
+            storageBucket: "learning-center-games.firebasestorage.app",
+            messagingSenderId: "639548693687",
+            appId: "1:639548693687:web:2d4d89ffb9ee6c84994132",
+            measurementId: "G-CZ3YN0B59R"
+        };
         // =========================================================================
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'boardgame-library-default';
 
+        // 重新編碼對齊 LE-001 起編之內建模擬資料
         const MOCK_CSV_3_DATA = [
-            { code: "LE-01", name: "拉密 (Rummikub)", category: "邏輯思考", players: "2-4人", location: "A區-01櫃", intro: "經典數字排列遊戲。結合了拉米紙牌與麻將玩法，考驗排列組合與邏輯思考能力，被誉為魔力橋。", status: "可借用" },
-            { code: "LE-02", name: "妙語說書人 (Dixit)", category: "語言表達", players: "3-6人", location: "A區-02櫃", intro: "充滿詩意與美麗繪圖的派對遊戲。玩家需要藉由手牌意象與話語暗示進行完美的心理博弈。", status: "可借用" },
-            { code: "LE-03", name: "閃靈快手 (Geistesblitz)", category: "反應專注", players: "2-8人", location: "B區-01櫃", intro: "大受歡迎的手腦眼協調派對遊戲。考驗大腦迴路在多重顏色與形狀干擾下的排除判斷力。", status: "可借用" },
-            { code: "LE-04", name: "卡卡頌 (Carcassonne)", category: "空間策略", players: "2-5人", location: "B區-02櫃", intro: "拼圖放置遊戲代表作。玩家扮演中古世紀領主，藉由一步步建造道路、城堡、修道院，規劃壯大領土。", status: "可借用" },
-            { code: "LE-05", name: "璀璨寶石 (Splendor)", category: "資源分配", players: "2-4人", location: "C區-01櫃", intro: "世界級輕策略名作。扮演文藝復興時期的富商，開採礦脈、建立店鋪與尋求貴族資助。", status: "可借用" },
-            { code: "LE-06", name: "矮人礦坑 (Saboteur)", category: "人際互動", players: "3-10人", location: "C區-02櫃", intro: "陣營心機對決。分為尋找金礦的好矮人與搞破壞的壞矮人，展開心理戰。", status: "可借用" },
-            { code: "LE-07", name: "哆寶 (Dobble)", category: "感知專注", players: "2-8人", location: "A區-03櫃", intro: "快速比對圓卡相同圖案，眼明手快對決。", status: "可借用" },
-            { code: "LE-08", name: "烏邦果 (Ubongo)", category: "幾何拼圖", players: "1-4人", location: "B區-03櫃", intro: "在沙漏極限壓力下，利用幾何版塊填滿任務空白。", status: "可借用" },
-            { code: "LE-09", name: "誰是牛頭王 (Take 6!)", category: "數學思維", players: "2-10人", location: "C區-03櫃", intro: "數字接龍博弈遊戲，暗中出牌依照數字大小排入。", status: "可借用" },
-            { code: "LE-10", name: "疊杯大賽 (Speed Cups)", category: "手眼協調", players: "2-4人", location: "A區-04櫃", intro: "根據提示快速排列五色杯子並按鈴搶答！", status: "可借用" },
-            { code: "LE-11", name: "數字急轉彎 (7 Ate 9)", category: "快速計算", players: "2-4人", location: "B區-04櫃", intro: "加減法極速出牌，沒有回合限制的心算大作戰。", status: "可借用" },
-            { code: "LE-12", name: "平衡積木 (Jenga)", category: "肢體動覺", players: "2-8人", location: "C區-04櫃", intro: "重力與力量控制，抽積木疊到頂端不倒塌。", status: "可借用" }
+            { code: "LE-001", name: "拉密 (Rummikub)", category: "邏輯思考", players: "2-4人", location: "A區-01櫃", intro: "經典數字排列遊戲。結合了拉米紙牌與麻將玩法，考驗排列組合與邏輯思考能力，被誉為魔力橋。", accessories: "106塊牌、4個牌架、說明書", flow: "1. 隨機抽牌 2. 進行破冰(出牌大於30點) 3. 組合牌組 4. 先出完牌者獲勝", features: "訓練排列組合、強化數理邏輯、老少咸宜", status: "可借用" },
+            { code: "LE-002", name: "妙語說書人 (Dixit)", category: "語言表達", players: "3-6人", location: "A區-02櫃", intro: "充滿詩意與美麗繪圖的派對遊戲。玩家需要藉由手牌意象與話語暗示進行完美的心理博弈。", accessories: "84張大版面插畫牌、記分板、投票標記、兔子棋子", flow: "1. 說書人給出關鍵字 2. 其他人挑選符合手牌 3. 混牌並投票 4. 計分並前進", features: "提煉故事想像力、強化語音表達、培養群體默契", status: "可借用" },
+            { code: "LE-003", name: "閃靈快手 (Geistesblitz)", category: "反應專注", players: "2-8人", location: "B區-01櫃", intro: "大受歡迎的手腦眼協調派對遊戲。考驗大腦迴路在多重顏色與形狀干擾下的排除判斷力。", accessories: "5個小道具（瓶子、幽靈、沙發等）、卡牌", flow: "1. 翻開一張道具圖卡 2. 判斷完全符合或完全不符合的道具 3. 極速搶抓 4. 搶對得分", features: "眼腦手協調、排除法邏輯訓練、活躍團隊氣氛", status: "可借用" },
+            { code: "LE-004", name: "卡卡頌 (Carcassonne)", category: "空間策略", players: "2-5人", location: "B區-02櫃", intro: "拼圖放置遊戲代表作。玩家扮演中古世紀領主，藉由一步步建造道路、城堡、修道院，規劃壯大領土。", accessories: "72張版塊、40個隨從棋子、計分板", flow: "1. 抽取版塊並放置拼合 2. 決定是否派遣手下佔領 3. 當建築完工時結算計分", features: "空間幾何邏輯、長期土地規劃策略、基礎商務權衡", status: "可借用" },
+            { code: "LE-005", name: "璀璨寶石 (Splendor)", category: "資源分配", players: "2-4人", location: "C區-01櫃", intro: "世界級輕策略名作。扮演文藝復興時期的富商，開採礦脈、建立店鋪與尋求貴族資助。", accessories: "40張寶石Token、開發卡牌、貴族版塊", flow: "1. 獲取寶石Token 2. 憑寶石購買發展卡 3. 累積卡片享有寶石折扣 4. 先得15分者勝", features: "理財投資思維、資源鏈計算、短中長期卡牌策略", status: "可借用" }
         ];
 
         let db = null;
@@ -596,12 +594,9 @@
 
         async function startAdminCloudSync() {
             const indicator = document.getElementById('syncModeIndicator');
-            const noConfigBanner = document.getElementById('noConfigWarning');
-
-            if (!firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey === "") {
+            if (!firebaseConfig.apiKey) {
                 indicator.className = "text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
-                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>🔌 雲端未設定</span>`;
-                noConfigBanner.classList.remove('hidden');
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>🔌 尚未設定金鑰</span>`;
                 return;
             }
 
@@ -611,15 +606,10 @@
                 db = getFirestore(firebaseApp);
                 auth = getAuth(firebaseApp);
 
-                // 進行認證
                 const res = await signInAnonymously(auth);
-                const user = res.user;
-
-                if (user) {
-                    // RULE 3: Authenticated completely
+                if (res.user) {
                     indicator.className = "text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
                     indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>☁️ 雲端同步中</span>`;
-                    noConfigBanner.classList.add('hidden');
                     setupFirebaseListeners();
                 }
             } catch (err) {
@@ -634,7 +624,6 @@
 
             // RULE 1: Strict Paths
             const gamesCol = collection(db, 'artifacts', appId, 'public', 'data', 'games');
-            // RULE 2: No Complex Queries. Handled locally.
             onSnapshot(gamesCol, (snapshot) => {
                 const tempGames = [];
                 snapshot.forEach(doc => {
@@ -970,7 +959,7 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            showLoading("讀取檔案中", "正在為您解析並同步上傳雲端資料庫...");
+            showLoading("讀取檔案中", "正在解析 Excel/CSV 並對齊雲端流水號...");
 
             const reader = new FileReader();
             reader.onload = async function(evt) {
@@ -979,7 +968,6 @@
                     const uint8Array = new Uint8Array(data);
                     let csvContent = "";
 
-                    // 智慧編碼檢查 (UTF-8 with BOM vs Big5)
                     if (uint8Array[0] === 0xEF && uint8Array[1] === 0xBB && uint8Array[2] === 0xBF) {
                         csvContent = new TextDecoder('utf-8').decode(uint8Array);
                     } else {
@@ -1018,11 +1006,19 @@
                         const category = findVal(['類別', '分類', 'category', '分類領域']);
                         const players = findVal(['人數', '遊玩人數', 'players', '適合人數']);
                         const location = findVal(['位置', '放置', '櫃位', 'location']);
-                        const intro = findVal(['遊戲簡介', '簡介', 'intro', '備註', '說明', 'note']);
+                        
+                        // 對應讀取 4 個結構化分流欄位
+                        const intro = findVal(['遊戲簡介', '簡介', 'intro', '說明']);
+                        const accessories = findVal(['遊戲配件', '配件', 'accessories', '道具']);
+                        const flow = findVal(['遊戲流程', '流程', 'flow', '規則']);
+                        const features = findVal(['遊戲特色', '特色', 'features', '優點']);
 
                         if (!code && !name) return null;
 
-                        const gameId = code || `LE-${100 + index}`;
+                        // 💡 智慧起編修正：當無編號時，由 LE-001 開始精算
+                        const paddedIndex = String(index + 1).padStart(3, '0');
+                        const gameId = code || `LE-${paddedIndex}`;
+                        
                         const gameData = {
                             id: gameId,
                             code: gameId,
@@ -1032,18 +1028,19 @@
                             location: location || '櫃位未定',
                             status: '可借用',
                             intro: intro || '',
-                            note: intro || '',
+                            accessories: accessories || '',
+                            flow: flow || '',
+                            features: features || '',
                             createdAt: Date.now() + index
                         };
 
-                        // RULE 1: Strict Paths
                         const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId);
                         return setDoc(gameDocRef, gameData);
                     }).filter(p => p !== null);
 
                     await Promise.all(promises);
                     hideLoading();
-                    showToast(`成功同步匯入 ${promises.length} 筆至雲端資料庫！`);
+                    showToast(`成功自動編碼並匯入 ${promises.length} 筆至雲端資料庫！`);
                     switchAdminTab('games');
                 } catch (err) {
                     console.error("匯入失敗:", err);
@@ -1077,7 +1074,12 @@
             document.getElementById('newGameCategory').value = game.category || '';
             document.getElementById('newGamePlayers').value = game.players || '';
             document.getElementById('newGameLocation').value = game.location || '';
-            document.getElementById('newGameIntro').value = game.intro || game.note || '';
+            
+            // 綁定 4 個欄位資料
+            document.getElementById('newGameIntro').value = game.intro || '';
+            document.getElementById('newGameAccessories').value = game.accessories || '';
+            document.getElementById('newGameFlow').value = game.flow || '';
+            document.getElementById('newGameFeatures').value = game.features || '';
 
             document.getElementById('modalAddTitle').innerText = "編輯教育桌遊館藏";
             document.getElementById('modalAddSubmitBtn').innerText = "更新修改";
@@ -1093,12 +1095,24 @@
             if (!db) return;
 
             const editingId = document.getElementById('editingGameId').value;
-            const code = document.getElementById('newGameCode').value.trim();
+            let code = document.getElementById('newGameCode').value.trim();
             const name = document.getElementById('newGameName').value.trim();
             const category = document.getElementById('newGameCategory').value.trim();
             const players = document.getElementById('newGamePlayers').value.trim();
             const location = document.getElementById('newGameLocation').value.trim();
+            
             const intro = document.getElementById('newGameIntro').value.trim();
+            const accessories = document.getElementById('newGameAccessories').value.trim();
+            const flow = document.getElementById('newGameFlow').value.trim();
+            const features = document.getElementById('newGameFeatures').value.trim();
+
+            // 若手動新增不填 Code，在新增時也自動按照 LE-001 起算補上
+            if (!code && !editingId) {
+                const nextNum = games.length + 1;
+                code = `LE-${String(nextNum).padStart(3, '0')}`;
+            } else if (!code && editingId) {
+                code = editingId;
+            }
 
             if (games.some(g => g.code === code && g.id !== editingId)) {
                 showToast("此館藏編號已重複！", "error");
@@ -1115,13 +1129,14 @@
                 players,
                 location,
                 intro,
-                note: intro,
+                accessories,
+                flow,
+                features,
                 status: editingId ? (games.find(g => g.id === editingId)?.status || '可借用') : '可借用',
                 createdAt: editingId ? (games.find(g => g.id === editingId)?.createdAt || Date.now()) : Date.now()
             };
 
             try {
-                // RULE 1: Strict Paths
                 const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', code);
                 await setDoc(gameDocRef, gameObj);
 
@@ -1139,49 +1154,95 @@
             }
         };
 
-        window.handleDeleteGame = async function(id, name) {
-            if (!db) return;
-            const activeLoan = loans.some(l => l.gameId === id && l.status === '出借中');
-            if (activeLoan) {
-                showToast(`「${name}」目前處於出借狀態！`, 'error');
-                return;
-            }
-
-            const confirmed = await customConfirm('確認刪除此項目？', `確認要將「${name}」從雲端資料庫中永久移除嗎？`);
-            if (confirmed) {
-                try {
-                    showLoading("刪除中", "正在從雲端資料庫中移除...");
-                    // RULE 1: Strict Paths
-                    const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', id);
-                    await deleteDoc(gameDocRef);
-                    hideLoading();
-                    showToast(`已成功移除「${name}」。`);
-                } catch (err) {
-                    hideLoading();
-                    showToast("刪除失敗: " + err.message, "error");
+        window.exportGamesToCSV = function() {
+            try {
+                if (games.length === 0) {
+                    showToast('無任何館藏可供匯出！', 'error');
+                    return;
                 }
+                const headers = ['館藏編號', '桌遊名稱', '分類領域', '遊玩人數', '存放位置', '目前狀態', '遊戲簡介', '遊戲配件', '遊戲流程', '遊戲特色'];
+                const rows = games.map(g => [
+                    g.code || '',
+                    g.name || '',
+                    g.category || '',
+                    g.players || '',
+                    g.location || '',
+                    g.status || '可借用',
+                    g.intro || '',
+                    g.accessories || '',
+                    g.flow || '',
+                    g.features || ''
+                ]);
+                
+                const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+                  + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
+                
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `館藏資料庫_${getTodayString()}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('已成功匯出館藏 CSV 檔案！');
+            } catch (err) {
+                showToast('匯出失敗！', 'error');
+            }
+        };
+
+        window.exportHistoryToCSV = function() {
+            try {
+                if (loans.length === 0) {
+                    showToast('無任何歷史紀錄可供匯出！', 'error');
+                    return;
+                }
+                const headers = ['館藏編號', '桌遊名稱', '借閱人姓名', '聯絡方式', '借出日期', '預計歸還期', '實際歸還期', '合約狀態', '物況與配件備註'];
+                const rows = loans.map(l => [
+                    l.gameCode || '',
+                    l.gameName || '',
+                    l.borrowerName || '',
+                    l.borrowerPhone || '',
+                    l.borrowDate || '',
+                    l.dueDate || '',
+                    l.returnDate || '',
+                    l.status || '',
+                    l.note || ''
+                ]);
+                
+                const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+                  + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
+                
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `借閱合約歷史紀錄_${getTodayString()}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('歷史合約紀錄已順利匯出！');
+            } catch (err) {
+                showToast('匯出歷史失敗！', 'error');
             }
         };
 
         window.triggerBorrow = function(gameId) {
-            if (!db) {
-                showToast("尚未連結雲端，無法登記！", "error");
-                return;
-            }
-            const gameObj = games.find(g => g.id === gameId);
-            if (!gameObj || gameObj.status !== '可借用') {
-                showToast('該桌遊目前已被借出！', 'error');
-                return;
-            }
+            const game = games.find(g => g.id === gameId);
+            if (!game) return;
+            selectedGameForBorrow = game;
 
-            selectedGameForBorrow = gameObj;
-            document.getElementById('borrowForm').reset();
-            document.getElementById('borrowTargetName').innerText = gameObj.name;
-            document.getElementById('borrowTargetCode').innerText = gameObj.code;
-            document.getElementById('borrowDate').value = getTodayString();
+            document.getElementById('borrowTargetName').innerText = game.name;
+            document.getElementById('borrowTargetCode').innerText = game.code || 'CODE';
             
-            const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            document.getElementById('dueDate').value = sevenDaysLater;
+            const today = getTodayString();
+            document.getElementById('borrowDate').value = today;
+            
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            document.getElementById('dueDate').value = nextWeek.toISOString().split('T')[0];
+
+            document.getElementById('borrowerName').value = '';
+            document.getElementById('borrowerPhone').value = '';
+            document.getElementById('borrowNote').value = '';
 
             document.getElementById('borrowModal').classList.remove('hidden');
         };
@@ -1193,55 +1254,57 @@
 
         window.handleBorrowGame = async function(e) {
             e.preventDefault();
-            if (!selectedGameForBorrow || !db) return;
+            if (!db || !selectedGameForBorrow) return;
 
             const borrowerName = document.getElementById('borrowerName').value.trim();
             const borrowerPhone = document.getElementById('borrowerPhone').value.trim();
             const borrowDate = document.getElementById('borrowDate').value;
             const dueDate = document.getElementById('dueDate').value;
-            const note = document.getElementById('borrowNote').value.trim();
+            const borrowNote = document.getElementById('borrowNote').value.trim();
 
-            const loanId = `L_${Date.now()}`;
-            showLoading("借出登記中", "正在更新雲端合約與在庫狀態...");
+            showLoading("辦理借出中", "正在將借閱名單寫入雲端資料庫並變更館藏狀態...");
 
+            const loanId = `L-${Date.now()}`;
             const loanObj = {
                 id: loanId,
-                gameId: selectedGameForBorrow.id,
-                gameName: selectedGameForBorrow.name,
                 gameCode: selectedGameForBorrow.code,
-                borrowerName, borrowerPhone, borrowDate, dueDate,
-                returnDate: null,
+                gameName: selectedGameForBorrow.name,
+                gameId: selectedGameForBorrow.id,
+                borrowerName,
+                borrowerPhone,
+                borrowDate,
+                dueDate,
                 status: '出借中',
-                condition: null,
-                note,
+                returnDate: '',
+                condition: '',
+                note: borrowNote,
                 createdAt: Date.now()
             };
 
             try {
-                // RULE 1: Strict Paths
                 const loanDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'loans', loanId);
-                await setDoc(loanDocRef, loanObj);
-
                 const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', selectedGameForBorrow.id);
+
+                await setDoc(loanDocRef, loanObj);
                 await updateDoc(gameDocRef, { status: '出借中' });
 
                 hideLoading();
                 closeBorrowModal();
-                showToast(`登記成功！已借出給 ${borrowerName}`);
+                showToast(`成功借出桌遊「${selectedGameForBorrow.name}」！`);
             } catch (err) {
                 hideLoading();
-                showToast("借出登記失敗: " + err.message, "error");
+                showToast("借出辦理失敗: " + err.message, "error");
             }
         };
 
         window.triggerQuickReturn = function(loanId) {
-            const loanObj = loans.find(l => l.id === loanId);
-            if (!loanObj) return;
+            const loan = loans.find(l => l.id === loanId);
+            if (!loan) return;
+            selectedLoanForReturn = loan;
 
-            selectedLoanForReturn = loanObj;
-            document.getElementById('returnTargetName').innerText = loanObj.gameName;
-            document.getElementById('returnTargetCode').innerText = loanObj.gameCode;
-            document.getElementById('returnBorrowerDesc').innerText = `借閱人：${loanObj.borrowerName} (${loanObj.borrowerPhone})`;
+            document.getElementById('returnTargetName').innerText = loan.gameName;
+            document.getElementById('returnTargetCode').innerText = loan.gameCode;
+            document.getElementById('returnBorrowerDesc').innerText = `原借閱人：${loan.borrowerName} (${loan.borrowerPhone})`;
             document.getElementById('returnNote').value = '';
             setReturnCondition('良好');
 
@@ -1249,26 +1312,20 @@
         };
 
         window.triggerReturnByGameId = function(gameId) {
-            const activeLoan = loans.find(l => l.gameId === gameId && l.status === '出借中');
-            if (activeLoan) {
-                triggerQuickReturn(activeLoan.id);
+            const loan = loans.find(l => l.gameId === gameId && l.status === '出借中');
+            if (loan) {
+                window.triggerQuickReturn(loan.id);
             } else {
-                showToast('找不到該桌遊的出借紀錄！', 'error');
+                showToast("未找到對應的出借中紀錄！", "error");
             }
-        };
-
-        window.closeReturnModal = function() {
-            document.getElementById('returnModal').classList.add('hidden');
-            selectedLoanForReturn = null;
         };
 
         window.setReturnCondition = function(cond) {
             selectedReturnCondition = cond;
-            const states = ['良好', '輕微損壞', '遺失/嚴重污損'];
-            states.forEach(state => {
-                const mapId = state === '遺失/嚴重污損' ? '遺失' : state;
-                const btn = document.getElementById(`condBtn-${mapId}`);
-                if (state === cond) {
+            const buttons = ['良好', '輕微損壞', '遺失'];
+            buttons.forEach(b => {
+                const btn = document.getElementById(`condBtn-${b}`);
+                if (b === cond) {
                     btn.className = "py-2 px-1 rounded-xl text-xs font-semibold border transition-all border-brand-600 bg-brand-50 text-brand-700";
                 } else {
                     btn.className = "py-2 px-1 rounded-xl text-xs font-semibold border transition-all border-slate-200 bg-white text-slate-600";
@@ -1276,77 +1333,82 @@
             });
         };
 
+        window.closeReturnModal = function() {
+            document.getElementById('returnModal').classList.add('hidden');
+            selectedLoanForReturn = null;
+        };
+
         window.handleReturnGame = async function(e) {
             e.preventDefault();
-            if (!selectedLoanForReturn || !db) return;
+            if (!db || !selectedLoanForReturn) return;
 
-            const today = getTodayString();
-            const noteInput = document.getElementById('returnNote').value.trim();
-            const targetGameId = selectedLoanForReturn.gameId;
-            const targetLoanId = selectedLoanForReturn.id;
+            const returnNote = document.getElementById('returnNote').value.trim();
+            const returnDate = getTodayString();
 
-            const updatedLoanNote = selectedLoanForReturn.note 
-                ? `${selectedLoanForReturn.note} | 歸還物況備註: ${noteInput}` 
-                : `歸還物況備註: ${noteInput}`;
-
-            closeReturnModal();
-            showLoading("辦理歸還中", "正在處理入庫歸檔與雲端備存...");
+            showLoading("歸還登記中", "正在變更雲端在庫狀態並歸檔歷史存摺...");
 
             try {
-                // RULE 1: Strict Paths
-                const loanDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'loans', targetLoanId);
+                const loanDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'loans', selectedLoanForReturn.id);
+                const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', selectedLoanForReturn.gameId);
+
                 await updateDoc(loanDocRef, {
-                    returnDate: today,
                     status: '已歸還',
+                    returnDate,
                     condition: selectedReturnCondition,
-                    note: updatedLoanNote
+                    note: returnNote ? `${selectedLoanForReturn.note} | 收回配件物況: ${returnNote}` : selectedLoanForReturn.note
                 });
 
-                const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', targetGameId);
                 await updateDoc(gameDocRef, { status: '可借用' });
 
                 hideLoading();
-                showToast(`館藏已順利歸還雲端入庫！`);
+                closeReturnModal();
+                showToast(`「${selectedLoanForReturn.gameName}」已順利結清歸還並入庫！`);
             } catch (err) {
                 hideLoading();
-                showToast("歸還入庫失敗: " + err.message, "error");
+                showToast("辦理歸還失敗: " + err.message, "error");
             }
         };
 
-        window.exportHistoryToCSV = function() {
+        window.clearAllLocalData = async function() {
+            if (!db) return;
+            const confirmed = await customConfirm(
+                '🗑️ 確認清除所有資料？', 
+                '確認要完全抹除雲端資料庫上的【館藏目錄】與【歷史合約紀錄】嗎？'
+            );
+            if (!confirmed) return;
+
+            showLoading("抹除資料中", "正在清空專案雲端資料庫...");
             try {
-                if (loans.length === 0) {
-                    showToast('無任何紀錄可供匯出！', 'error');
-                    return;
-                }
-                const headers = ['借閱紀錄編號', '桌遊編號', '桌遊名稱', '借閱人', '電話', '借出日期', '預計歸還日', '實際歸還日', '目前狀態', '歸還物況', '備註說明'];
-                const rows = loans.map(l => [
-                    l.id || '',
-                    l.gameCode || '',
-                    l.gameName || '',
-                    l.borrowerName || '',
-                    l.borrowerPhone || '',
-                    l.borrowDate || '',
-                    l.dueDate || '',
-                    l.returnDate || '出借中',
-                    l.status || '',
-                    l.condition || '未歸還',
-                    l.note || ''
-                ]);
-                
-                const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
-                  + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
-                
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", `歷史紀錄_${getTodayString()}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                showToast('已匯出歷史紀錄 CSV 檔案！');
+                const deleteGames = games.map(g => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', g.id)));
+                const deleteLoans = loans.map(l => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id)));
+                await Promise.all([...deleteGames, ...deleteLoans]);
+                hideLoading();
+                showToast("雲端資料庫已順利清空！");
             } catch (err) {
-                showToast('匯出失敗！', 'error');
+                hideLoading();
+                showToast("清空失敗: " + err.message, "error");
+            }
+        };
+
+        window.handleDeleteGame = async function(id, name) {
+            if (!db) return;
+            const activeLoan = loans.some(l => l.gameId === id && l.status === '出借中');
+            if (activeLoan) {
+                showToast(`「${name}」目前仍在出借中，需歸還後方能刪除！`, "error");
+                return;
+            }
+
+            const confirmed = await customConfirm("🗑️ 確定刪除此桌遊？", `確定要永久將「${name}」從館藏名冊中刪除嗎？`);
+            if (!confirmed) return;
+
+            showLoading("刪除中", "正在從雲端資料庫移除該館藏...");
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', id));
+                hideLoading();
+                showToast(`館藏「${name}」已成功移除！`);
+            } catch (err) {
+                hideLoading();
+                showToast("刪除失敗: " + err.message, "error");
             }
         };
 
@@ -1365,10 +1427,7 @@
 
             showLoading("清理紀錄中", "正在重置借閱合約資料庫...");
             try {
-                // RULE 1: Strict Paths
-                const deletePromises = loans.map(l => {
-                    return deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id));
-                });
+                const deletePromises = loans.map(l => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id)));
                 await Promise.all(deletePromises);
 
                 const gamePromises = games.map(g => {
@@ -1384,57 +1443,6 @@
             } catch (err) {
                 hideLoading();
                 showToast("重置失敗: " + err.message, "error");
-            }
-        };
-
-        window.seedDefaultCSVData = async function() {
-            if (!db) {
-                showToast("雲端資料庫尚未初始化，請先設定金鑰！", "error");
-                return;
-            }
-            const confirmed = await customConfirm('是否載入模擬資料？', '此操作將直接預載 12 款主打的教育級桌遊並寫入雲端 Firestore 資料庫。');
-            if (!confirmed) return;
-
-            showLoading("寫入中", "正在批次同步模擬館藏至雲端...");
-            try {
-                // RULE 1: Strict Paths
-                const promises = MOCK_CSV_3_DATA.map((g, i) => {
-                    const gameId = g.code;
-                    const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId);
-                    return setDoc(gameDocRef, {
-                        ...g,
-                        id: gameId,
-                        createdAt: Date.now() + i
-                    });
-                });
-                await Promise.all(promises);
-                hideLoading();
-                showToast("成功在雲端資料庫中同步預載 12 筆模擬資料！");
-            } catch (err) {
-                hideLoading();
-                showToast("寫入失敗: " + err.message, "error");
-            }
-        };
-
-        window.clearAllLocalData = async function() {
-            if (!db) return;
-            const confirmed = await customConfirm(
-                '🗑️ 確認清除所有資料？', 
-                '確認要完全抹除雲端資料庫上的【館藏目錄】與【歷史合約紀錄】嗎？'
-            );
-            if (!confirmed) return;
-
-            showLoading("抹除資料中", "正在清空專案雲端資料庫...");
-            try {
-                // RULE 1: Strict Paths
-                const deleteGames = games.map(g => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', g.id)));
-                const deleteLoans = loans.map(l => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id)));
-                await Promise.all([...deleteGames, ...deleteLoans]);
-                hideLoading();
-                showToast("雲端資料庫已順利清空！");
-            } catch (err) {
-                hideLoading();
-                showToast("清空失敗: " + err.message, "error");
             }
         };
 
@@ -1479,7 +1487,7 @@
 
             setTimeout(() => {
                 toast.style.opacity = '0';
-                toast.style.transition = 'opacity 0.4s ease';
+                toast.style.transition = 'opacity 0.4s';
                 setTimeout(() => toast.remove(), 400);
             }, 3000);
         }
@@ -1502,7 +1510,6 @@
             });
         }
 
-        // 檔案監聽與雲端初始化
         document.getElementById('csvFileInput').addEventListener('change', handleCsvImport);
         startAdminCloudSync();
     </script>

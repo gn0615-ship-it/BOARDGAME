@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>學習中心教育桌遊館藏查詢系統</title>
     
-    <!-- 引入高質感 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
@@ -24,7 +23,6 @@
                             500: '#10b981',
                             600: '#059669',
                             700: '#047857',
-                            800: '#065f46',
                             900: '#064e3b',
                         }
                     }
@@ -70,19 +68,22 @@
 </head>
 <body class="min-h-screen text-slate-800 antialiased flex flex-col justify-between">
 
+    <!-- Toast 容器 -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none"></div>
+
     <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="p-2.5 bg-gradient-to-tr from-brand-500 to-teal-600 rounded-xl text-white shadow-md shadow-emerald-100">
+                <div class="p-2.5 bg-gradient-to-tr from-brand-600 to-teal-600 rounded-xl text-white shadow-md shadow-emerald-100">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 </div>
                 <div>
-                    <h1 class="text-base sm:text-lg font-bold bg-gradient-to-r from-brand-600 to-teal-700 bg-clip-text text-transparent font-sans">
+                    <h1 class="text-base sm:text-lg font-bold bg-gradient-to-r from-brand-600 to-teal-700 bg-clip-text text-transparent">
                         學習中心教育桌遊館藏查詢系統
                     </h1>
                     <div class="flex items-center gap-2 mt-0.5">
-                        <span class="text-[10px] text-slate-400 font-mono tracking-wider">BOARDGAME CATALOG READER</span>
-                        <span class="inline-flex items-center gap-1 bg-brand-50 text-brand-600 text-[9px] px-2 py-0.5 rounded-full font-bold border border-brand-200">☁️ 雲端即時連線端</span>
+                        <span class="text-[10px] text-slate-400 font-mono tracking-wider">BOARDGAME SEARCH ENGINE</span>
+                        <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-600 text-[9px] px-2 py-0.5 rounded-full font-medium">🔒 唯讀查詢模式</span>
                     </div>
                 </div>
             </div>
@@ -90,7 +91,7 @@
             <div class="flex items-center gap-2">
                 <span id="syncModeIndicator" class="text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-                    <span>等待雲端金鑰配對...</span>
+                    <span>雲端配置中...</span>
                 </span>
             </div>
         </div>
@@ -98,48 +99,30 @@
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full space-y-6">
 
-        <!-- 雲端未設定警示 -->
-        <div id="noConfigWarning" class="hidden p-6 bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700 rounded-3xl text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div class="space-y-1 text-center sm:text-left">
-                <h4 class="text-base font-bold flex items-center justify-center sm:justify-start gap-2">
-                    <span class="text-xl">🔌</span>
-                    <span>尚未在 HTML 程式碼中配置 Firebase 雲端金鑰</span>
-                </h4>
-                <p class="text-xs text-slate-400">
-                    本頁面目前為純雲端發布版。請使用文字編輯器打開此 HTML 檔案，並在最上方貼入您申請好的 Firebase SDK Config 物件，手機與電腦即可立即同步！
-                </p>
-            </div>
-            <span class="bg-amber-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md shrink-0 select-none">
-                請參考部署指南操作 ➔
-            </span>
-        </div>
-
-        <!-- 導引說明橫幅 -->
-        <div id="cloudGuideBanner" class="hidden p-4 bg-brand-50/70 border border-brand-100 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <!-- 導引橫幅 -->
+        <div class="p-5 bg-gradient-to-r from-brand-50/70 to-teal-50/40 border border-brand-100 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex items-start gap-3">
                 <div class="p-1.5 bg-brand-100 rounded-lg text-brand-700 mt-0.5">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <div>
-                    <h4 class="text-sm font-semibold text-brand-900">💡 雲端即時狀態對齊中</h4>
+                    <h4 class="text-sm font-semibold text-brand-900">💡 歡迎使用學習中心桌遊線上型錄</h4>
                     <p class="text-xs text-brand-700 mt-0.5 leading-relaxed">
-                        您正處於純雲端查詢模式。當管理同仁在行政處辦理借還手續時，本畫面將會自動、無須重新整理地同步更新最新在庫情形。
+                        本頁面提供即時的桌遊在庫狀態、櫃位與適用人數查詢。如需辦理登記借閱或歸還手續，請洽學習中心管理人員。
                     </p>
                 </div>
             </div>
-            <div>
-                <span class="text-xs text-brand-600 bg-brand-100 border border-brand-200 px-3 py-1 rounded-xl font-medium" id="syncStatusTime">
-                    雲端同步時間: --:--:--
-                </span>
-            </div>
+            <span class="text-xs text-slate-400 bg-white border border-slate-100 px-3 py-1.5 rounded-xl shadow-sm self-start md:self-auto" id="syncStatusTime">
+                資料載入中...
+            </span>
         </div>
 
         <!-- 數據統計板 -->
         <div class="grid grid-cols-3 gap-4" id="statsDashboard">
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
                 <div>
-                    <p class="text-xs sm:text-sm text-slate-500 font-medium">雲端館藏總數</p>
-                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-1" id="statTotal">-- 套</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 font-medium">總館藏數量</p>
+                    <h3 class="text-lg sm:text-2xl font-bold text-slate-900 mt-1" id="statTotal">-- 套</h3>
                 </div>
                 <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
@@ -147,8 +130,8 @@
             </div>
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
                 <div>
-                    <p class="text-xs sm:text-sm text-slate-500 font-medium">在庫可供借閱</p>
-                    <h3 class="text-xl sm:text-2xl font-bold text-brand-600 mt-1" id="statAvailable">-- 套</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 font-medium">目前可借用</p>
+                    <h3 class="text-lg sm:text-2xl font-bold text-brand-600 mt-1" id="statAvailable">-- 套</h3>
                 </div>
                 <div class="p-3 bg-brand-50 text-brand-600 rounded-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -156,8 +139,8 @@
             </div>
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
                 <div>
-                    <p class="text-xs sm:text-sm text-slate-500 font-medium">目前已出借</p>
-                    <h3 class="text-xl sm:text-2xl font-bold text-amber-600 mt-1" id="statBorrowed">-- 套</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 font-medium">已被登記借出</p>
+                    <h3 class="text-lg sm:text-2xl font-bold text-amber-600 mt-1" id="statBorrowed">-- 套</h3>
                 </div>
                 <div class="p-3 bg-amber-50 text-amber-500 rounded-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
@@ -165,50 +148,48 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div class="relative flex-1 max-w-md">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </span>
-                <input type="text" id="viewSearchInput" oninput="handleViewFilterChange()" placeholder="快速搜尋編號、桌遊名稱、分類或位置..." class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-slate-50/50">
+                <input type="text" id="searchInput" oninput="handleSearchFilterChange()" placeholder="快速搜尋編號、桌遊名稱、位置、分類..." class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-slate-50/50">
             </div>
 
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-2">
                 <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-xs text-slate-600 shadow-sm">
-                    <span class="font-medium text-slate-400">分類:</span>
-                    <select id="viewCategorySelect" onchange="handleViewFilterChange()" class="focus:outline-none bg-transparent font-medium"></select>
+                    <span>分類:</span>
+                    <select id="categorySelect" onchange="handleSearchFilterChange()" class="focus:outline-none bg-transparent font-medium"></select>
                 </div>
 
                 <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-xs text-slate-600 shadow-sm">
-                    <span class="font-medium text-slate-400">狀態:</span>
-                    <select id="viewStatusSelect" onchange="handleViewFilterChange()" class="focus:outline-none bg-transparent font-medium">
+                    <span>狀態:</span>
+                    <select id="statusSelect" onchange="handleSearchFilterChange()" class="focus:outline-none bg-transparent font-medium">
                         <option value="">全部狀態</option>
                         <option value="可借用">可借用</option>
                         <option value="出借中">出借中</option>
                     </select>
                 </div>
 
-                <button onclick="resetViewFilters()" class="text-xs text-rose-500 hover:text-rose-600 font-semibold px-2 transition-colors">重設</button>
+                <button onclick="resetFilters()" class="text-xs text-rose-500 hover:text-rose-600 font-semibold px-2 transition-colors">重置</button>
 
-                <div class="w-px h-6 bg-slate-200 hidden sm:block"></div>
+                <div class="h-6 w-px bg-slate-200 hidden sm:block mx-1"></div>
 
                 <div class="flex bg-slate-100 p-1 rounded-xl">
-                    <button onclick="setViewMode('grid')" id="viewBtn-grid" class="p-1.5 rounded-lg transition-all text-brand-700 bg-white shadow-sm border border-slate-200" title="網格卡片檢視">
+                    <button onclick="setViewMode('grid')" id="viewBtn-grid" class="p-1.5 rounded-lg transition-all text-brand-700 bg-white shadow-sm" title="網格卡片">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"/></svg>
                     </button>
-                    <button onclick="setViewMode('list')" id="viewBtn-list" class="p-1.5 rounded-lg transition-all text-slate-500" title="條列明細檢視">
+                    <button onclick="setViewMode('list')" id="viewBtn-list" class="p-1.5 rounded-lg transition-all text-slate-500" title="條列表格">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
                 </div>
             </div>
         </div>
 
-        <div id="viewContentContainer">
-            <!-- 卡片網格檢視 -->
-            <div id="viewGridView" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+        <div id="contentContainer">
+            <div id="gridView" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
 
-            <!-- 列表清單檢視 -->
-            <div id="viewListView" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div id="listView" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -218,20 +199,19 @@
                                 <th class="px-6 py-4">分類類別</th>
                                 <th class="px-6 py-4">遊玩人數</th>
                                 <th class="px-6 py-4">存放位置</th>
-                                <th class="px-6 py-4">借閱狀態與日程</th>
-                                <th class="px-6 py-4 text-right">詳細</th>
+                                <th class="px-6 py-4">狀態/到期日</th>
+                                <th class="px-6 py-4 text-right">詳情</th>
                             </tr>
                         </thead>
-                        <tbody id="viewListTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
+                        <tbody id="listTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 空狀態提示 -->
-            <div id="viewEmptyState" class="hidden py-24 bg-white rounded-2xl border border-slate-200/80 shadow-sm text-center text-slate-400">
-                <div class="text-4xl mb-3">🔍</div>
-                <div class="text-lg font-medium text-slate-600 mb-1">找不到符合的館藏項目</div>
-                <div class="text-xs text-slate-400">試試調整您的關鍵字或分類篩選條件</div>
+            <div id="emptyState" class="hidden py-24 bg-white rounded-2xl border border-slate-200/80 shadow-sm text-center text-slate-400">
+                <div class="text-4xl mb-3">📦</div>
+                <div class="text-lg font-medium text-slate-600 mb-1">未找到符合條件的館藏</div>
+                <div class="text-xs">請試著變更過濾條件或關鍵字。</div>
             </div>
         </div>
     </main>
@@ -239,19 +219,19 @@
     <div id="detailsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
         <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden modal-animate flex flex-col">
             <div class="bg-gradient-to-r from-brand-600 to-teal-700 p-6 text-white relative">
-                <button onclick="closeDetailsModal()" class="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-all">✕</button>
-                <div class="inline-block bg-white/20 text-white text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider font-mono mb-2" id="modalGameCode">CODE</div>
+                <button onclick="closeDetailsModal()" class="absolute top-4 right-4 text-white/85 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-all">✕</button>
+                <div class="inline-block bg-white/20 text-white text-[10px] px-2.5 py-0.5 rounded-full font-bold font-mono mb-2" id="modalGameCode">CODE</div>
                 <h3 class="font-bold text-xl sm:text-2xl leading-tight" id="modalGameName">桌遊名稱</h3>
                 <p class="text-xs text-brand-100 mt-1" id="modalGameCategory">分類領域</p>
             </div>
 
-            <div class="p-6 space-y-5 overflow-y-auto max-h-[70vh]">
+            <div class="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="p-3 bg-slate-50 rounded-xl">
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <span class="text-[10px] text-slate-400 font-bold block">適合人數</span>
                         <span class="text-sm font-semibold text-slate-700" id="modalGamePlayers">--</span>
                     </div>
-                    <div class="p-3 bg-slate-50 rounded-xl">
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <span class="text-[10px] text-slate-400 font-bold block">存放櫃位</span>
                         <span class="text-sm font-semibold text-slate-700" id="modalGameLocation">--</span>
                     </div>
@@ -265,18 +245,29 @@
                     <div id="modalReturnSection" class="text-right"></div>
                 </div>
 
-                <div class="space-y-4">
+                <!-- 漸層色左側線條分隔的 4 大高質感結構化欄位區 -->
+                <div class="space-y-3.5">
                     <div class="border-l-4 border-emerald-500 pl-3">
-                        <span class="text-xs font-bold text-slate-400 block uppercase tracking-wider">📖 遊戲簡介</span>
-                        <div id="modalGameIntro" class="text-slate-600 text-xs sm:text-sm mt-1 leading-relaxed">暫無說明</div>
+                        <span class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider block">📖 遊戲簡介</span>
+                        <p class="text-slate-600 text-xs sm:text-sm mt-0.5 leading-relaxed" id="modalGameIntro">無簡介資訊。</p>
+                    </div>
+                    <div class="border-l-4 border-blue-500 pl-3">
+                        <span class="text-[10px] text-blue-600 font-bold uppercase tracking-wider block">🧩 遊戲配件</span>
+                        <p class="text-slate-600 text-xs sm:text-sm mt-0.5 leading-relaxed" id="modalGameAccessories">無配件資訊。</p>
+                    </div>
+                    <div class="border-l-4 border-purple-500 pl-3">
+                        <span class="text-[10px] text-purple-600 font-bold uppercase tracking-wider block">🔄 遊戲流程</span>
+                        <p class="text-slate-600 text-xs sm:text-sm mt-0.5 leading-relaxed" id="modalGameFlow">無流程資訊。</p>
+                    </div>
+                    <div class="border-l-4 border-amber-500 pl-3">
+                        <span class="text-[10px] text-amber-600 font-bold uppercase tracking-wider block">✨ 遊戲特色</span>
+                        <p class="text-slate-600 text-xs sm:text-sm mt-0.5 leading-relaxed" id="modalGameFeatures">無特色說明。</p>
                     </div>
                 </div>
             </div>
 
-            <div class="border-t border-slate-100 p-4 bg-slate-50/50 flex gap-3">
-                <button onclick="closeDetailsModal()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2.5 rounded-xl text-sm transition-colors text-center">
-                    關閉視窗
-                </button>
+            <div class="border-t border-slate-100 p-4 bg-slate-50/50">
+                <button onclick="closeDetailsModal()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2.5 rounded-xl text-sm transition-colors text-center">關閉視窗</button>
             </div>
         </div>
     </div>
@@ -284,96 +275,82 @@
     <!-- 頁尾 -->
     <footer class="bg-white border-t border-slate-200 py-6 mt-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p class="text-xs text-slate-400">學習中心教育桌遊館藏與借閱管理系統 (純雲端即時同步版) © 2026. All rights reserved.</p>
-            <p class="text-[10px] text-slate-300 mt-1">智慧雲端即時同步資料庫 🌐 支援多裝置跨電腦即時對齊</p>
+            <p class="text-xs text-slate-400">學習中心教育桌遊館藏與借閱管理系統 (唯讀查詢端) © 2026. All rights reserved.</p>
+            <p class="text-[10px] text-slate-300 mt-1">智慧雲端同步對齊 💾 保持全校數據高度一致</p>
         </div>
     </footer>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore as firestoreDb, doc, onSnapshot as docSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
         // 🔑 【步驟三】雲端金鑰填寫專區（請直接將您的 SDK config 物件貼入下方大括號中）
         // =========================================================================
         const firebaseConfig = {
-  apiKey: "AIzaSyDK458yVOxDiaM_k78HpL7R9S8Z0ntrEUM",
-  authDomain: "learning-center-games.firebaseapp.com",
-  projectId: "learning-center-games",
-  storageBucket: "learning-center-games.firebasestorage.app",
-  messagingSenderId: "639548693687",
-  appId: "1:639548693687:web:2d4d89ffb9ee6c84994132",
-  measurementId: "G-CZ3YN0B59R"
-};
+            apiKey: "AIzaSyDK458yVOxDiaM_k78HpL7R9S8Z0ntrEUM",
+            authDomain: "learning-center-games.firebaseapp.com",
+            projectId: "learning-center-games",
+            storageBucket: "learning-center-games.firebasestorage.app",
+            messagingSenderId: "639548693687",
+            appId: "1:639548693687:web:2d4d89ffb9ee6c84994132",
+            measurementId: "G-CZ3YN0B59R"
+        };
         // =========================================================================
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'boardgame-library-default';
         let db = null;
-        let auth = null;
         let games = [];
         let loans = [];
-        let currentViewMode = 'grid'; 
+        let viewMode = 'grid';
 
-        let viewSearchQuery = '';
-        let viewCategoryFilter = '';
-        let viewStatusFilter = '';
+        let searchQuery = '';
+        let categoryFilter = '';
+        let statusFilter = '';
 
-        // 啟動連線
         async function startCloudSync() {
             const indicator = document.getElementById('syncModeIndicator');
-            const noConfigBanner = document.getElementById('noConfigWarning');
-            const guideBanner = document.getElementById('cloudGuideBanner');
-
-            // 檢查金鑰是否已被填入
-            if (!firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey === "") {
+            if (!firebaseConfig.apiKey) {
                 indicator.className = "text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
-                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>🔌 雲端未串接</span>`;
-                noConfigBanner.classList.remove('hidden');
-                guideBanner.classList.add('hidden');
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>🔌 尚未設定金鑰</span>`;
                 return;
             }
 
             try {
                 // RULE 3: Auth Before Queries
-                const firebaseApp = initializeApp(firebaseConfig);
-                db = getFirestore(firebaseApp);
-                auth = getAuth(firebaseApp);
+                const app = initializeApp(firebaseConfig);
+                db = firestoreDb(app);
+                const auth = getAuth(app);
 
-                // 進行認證
-                const res = await signInAnonymously(auth);
-                const user = res.user;
-
-                if (user) {
-                    // RULE 3 Guard Passed
+                const signResult = await signInAnonymously(auth);
+                if (signResult.user) {
                     indicator.className = "text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
                     indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>☁️ 雲端同步中</span>`;
-                    noConfigBanner.classList.add('hidden');
-                    guideBanner.classList.remove('hidden');
-                    setupFirebaseListeners();
+                    setupListeners();
                 }
             } catch (err) {
                 console.error("Firebase 連線失敗:", err);
                 indicator.className = "text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
-                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>⚠️ 雲端連線失敗</span>`;
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>⚠️ 連線崩潰</span>`;
             }
         }
 
-        function setupFirebaseListeners() {
+        function setupListeners() {
             if (!db) return;
 
             // RULE 1: Strict Paths
             const gamesCol = collection(db, 'artifacts', appId, 'public', 'data', 'games');
-            // RULE 2: No Complex Queries. Fetch all, sort and filter in memory.
             onSnapshot(gamesCol, (snapshot) => {
                 const tempGames = [];
                 snapshot.forEach(doc => {
                     tempGames.push({ ...doc.data(), id: doc.id });
                 });
                 games = tempGames.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-                updateUIAndTimestamp();
+                updateUI();
             }, (err) => {
-                console.error("雲端館藏接收異常:", err);
+                console.error("查詢端加載館藏出錯:", err);
             });
 
             // RULE 1: Strict Paths
@@ -383,25 +360,20 @@
                 snapshot.forEach(doc => {
                     tempLoans.push({ ...doc.data(), id: doc.id });
                 });
-                loans = tempLoans;
-                updateUIAndTimestamp();
+                loans = tempLoans.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                updateUI();
             }, (err) => {
-                console.error("雲端借用名單接收異常:", err);
+                console.error("查詢端加載紀錄出錯:", err);
             });
         }
 
-        function updateUIAndTimestamp() {
-            const now = new Date();
-            const timeStr = now.toTimeString().split(' ')[0];
-            const syncTimeEl = document.getElementById('syncStatusTime');
-            if (syncTimeEl) syncTimeEl.innerText = `雲端同步時間: ${timeStr}`;
-            updateUI();
-        }
-
         function updateUI() {
+            const now = new Date();
+            document.getElementById('syncStatusTime').innerText = `更新時間: ${now.toTimeString().split(' ')[0]}`;
+
             calculateStats();
-            renderViewCategorySelect();
-            renderViewGames();
+            renderCategorySelect();
+            renderGames();
         }
 
         function calculateStats() {
@@ -409,13 +381,13 @@
             const available = games.filter(g => g.status === '可借用').length;
             const borrowed = games.filter(g => g.status === '出借中').length;
 
-            document.getElementById('statTotal').innerText = `${total} 套`;
-            document.getElementById('statAvailable').innerText = `${available} 套`;
-            document.getElementById('statBorrowed').innerText = `${borrowed} 套`;
+            document.getElementById('statTotal').innerText = total > 0 ? `${total} 套` : '-- 套';
+            document.getElementById('statAvailable').innerText = total > 0 ? `${available} 套` : '-- 套';
+            document.getElementById('statBorrowed').innerText = total > 0 ? `${borrowed} 套` : '-- 套';
         }
 
-        function renderViewCategorySelect() {
-            const select = document.getElementById('viewCategorySelect');
+        function renderCategorySelect() {
+            const select = document.getElementById('categorySelect');
             if (!select) return;
             const currentSelected = select.value;
             const cats = [...new Set(games.map(g => g.category).filter(Boolean))];
@@ -430,27 +402,64 @@
             });
         }
 
-        function getFilteredViewGames() {
+        window.handleSearchFilterChange = function() {
+            searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+            categoryFilter = document.getElementById('categorySelect').value;
+            statusFilter = document.getElementById('statusSelect').value;
+            renderGames();
+        };
+
+        window.resetFilters = function() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('categorySelect').value = '';
+            document.getElementById('statusSelect').value = '';
+            searchQuery = '';
+            categoryFilter = '';
+            statusFilter = '';
+            renderGames();
+        };
+
+        window.setViewMode = function(mode) {
+            viewMode = mode;
+            const gridBtn = document.getElementById('viewBtn-grid');
+            const listBtn = document.getElementById('viewBtn-list');
+            const gridView = document.getElementById('gridView');
+            const listView = document.getElementById('listView');
+
+            if (mode === 'grid') {
+                gridBtn.className = "p-1.5 rounded-lg transition-all text-brand-700 bg-white shadow-sm";
+                listBtn.className = "p-1.5 rounded-lg transition-all text-slate-500";
+                gridView.classList.remove('hidden');
+                listView.classList.add('hidden');
+            } else {
+                gridBtn.className = "p-1.5 rounded-lg transition-all text-slate-500";
+                listBtn.className = "p-1.5 rounded-lg transition-all text-brand-700 bg-white shadow-sm";
+                gridView.classList.add('hidden');
+                listView.classList.remove('hidden');
+            }
+            renderGames();
+        };
+
+        function getFilteredGames() {
+            // RULE 2: Client-side filtering
             return games.filter(g => {
                 const matchesSearch = 
-                    (g.name || '').toLowerCase().includes(viewSearchQuery) ||
-                    (g.code || '').toLowerCase().includes(viewSearchQuery) ||
-                    (g.location || '').toLowerCase().includes(viewSearchQuery) ||
-                    (g.intro || '').toLowerCase().includes(viewSearchQuery) ||
-                    (g.note || '').toLowerCase().includes(viewSearchQuery);
-                const matchesCategory = viewCategoryFilter ? g.category === viewCategoryFilter : true;
-                const matchesStatus = viewStatusFilter ? g.status === viewStatusFilter : true;
+                    (g.name || '').toLowerCase().includes(searchQuery) ||
+                    (g.code || '').toLowerCase().includes(searchQuery) ||
+                    (g.location || '').toLowerCase().includes(searchQuery) ||
+                    (g.intro || '').toLowerCase().includes(searchQuery) ||
+                    (g.accessories || '').toLowerCase().includes(searchQuery);
+                const matchesCategory = categoryFilter ? g.category === categoryFilter : true;
+                const matchesStatus = statusFilter ? g.status === statusFilter : true;
                 return matchesSearch && matchesCategory && matchesStatus;
             });
         }
 
-        function renderViewGames() {
-            const filtered = getFilteredViewGames();
-            const gridContainer = document.getElementById('viewGridView');
-            const listTableBody = document.getElementById('viewListTableBody');
-            const emptyState = document.getElementById('viewEmptyState');
-
-            if (!gridContainer || !listTableBody || !emptyState) return;
+        function renderGames() {
+            const filtered = getFilteredGames();
+            const gridContainer = document.getElementById('gridView');
+            const listTableBody = document.getElementById('listTableBody');
+            const emptyState = document.getElementById('emptyState');
 
             gridContainer.innerHTML = '';
             listTableBody.innerHTML = '';
@@ -464,18 +473,18 @@
 
             filtered.forEach(game => {
                 const isAvailable = game.status === '可借用';
-                const activeLoan = loans.find(l => l.gameId === game.id && l.status === '出借中');
+                const activeLoan = loans.find(l => l.gameCode === game.code && l.status === '出借中');
                 const dueDateText = activeLoan ? activeLoan.dueDate : null;
-                const gameDescription = game.intro || game.note || '目前雲端無補充說明或遊玩指南。';
 
+                // 1. Grid Rendering
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden card-hover flex flex-col justify-between p-5";
                 
-                let statusBadge = isAvailable
-                    ? `<span class="inline-flex items-center gap-1 bg-brand-50 text-brand-600 text-[10px] px-2.5 py-1 rounded-full font-bold">● 可借用</span>`
+                const statusBadge = isAvailable
+                    ? `<span class="inline-flex items-center gap-1 bg-brand-50 text-brand-700 text-[10px] px-2.5 py-1 rounded-full font-bold">● 可借用</span>`
                     : `<span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] px-2.5 py-1 rounded-full font-bold">● 出借中</span>`;
 
-                let returnDateBadge = (!isAvailable && dueDateText) 
+                const returnDateBadge = (!isAvailable && dueDateText) 
                     ? `<div class="text-[10px] text-amber-600 mt-1.5 font-medium flex items-center gap-1">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         預計歸還：${dueDateText}
@@ -493,7 +502,7 @@
                             ${game.category ? `<span class="bg-brand-50/50 text-brand-700 text-[10px] px-2 py-0.5 rounded-md font-semibold">${game.category}</span>` : ''}
                             ${game.players ? `<span class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded-md font-medium">👥 ${game.players}</span>` : ''}
                         </div>
-                        <p class="text-slate-400 text-xs line-clamp-2 leading-relaxed mb-4">${gameDescription}</p>
+                        <p class="text-slate-400 text-xs line-clamp-2 leading-relaxed mb-4">${game.intro || '點選查看詳情可瞭解流程、配件及遊玩特色。'}</p>
                     </div>
                     <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
                         <div>
@@ -501,22 +510,21 @@
                             <span class="text-xs font-semibold text-slate-700">${game.location || '櫃位未定'}</span>
                             ${returnDateBadge}
                         </div>
-                        <button onclick="openDetailsModal('${game.id}')" class="text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition-colors">
-                            查看詳情
-                        </button>
+                        <button onclick="openDetailsModal('${game.id}')" class="text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition-colors">查看詳情</button>
                     </div>
                 `;
                 gridContainer.appendChild(card);
 
+                // 2. List Row Rendering
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50/50 transition-colors cursor-pointer";
                 tr.onclick = () => openDetailsModal(game.id);
 
-                let listStatusDesc = isAvailable
-                    ? `<span class="inline-flex items-center gap-1 bg-brand-50 text-brand-600 text-xs px-2.5 py-0.5 rounded-full font-semibold">● 可借用</span>`
+                const listStatusDesc = isAvailable
+                    ? `<span class="inline-flex items-center gap-1 bg-brand-50 text-brand-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">● 可借用</span>`
                     : `<div class="flex flex-col">
-                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-xs px-2.5 py-0.5 rounded-full font-semibold w-max">● 出借中</span>
-                        ${dueDateText ? `<span class="text-[10px] text-amber-500 mt-1 font-mono">📅 預計歸還: ${dueDateText}</span>` : ''}
+                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-xs px-2.5 py-0.5 rounded-full font-semibold w-max">● 出借中</span>
+                        ${dueDateText ? `<span class="text-[10px] text-amber-500 mt-1 font-mono">📅 預還: ${dueDateText}</span>` : ''}
                        </div>`;
 
                 tr.innerHTML = `
@@ -538,51 +546,6 @@
             });
         }
 
-        window.handleViewFilterChange = function() {
-            viewSearchQuery = document.getElementById('viewSearchInput').value.trim().toLowerCase();
-            viewCategoryFilter = document.getElementById('viewCategorySelect').value;
-            viewStatusFilter = document.getElementById('viewStatusSelect').value;
-            renderViewGames();
-        };
-
-        window.resetViewFilters = function() {
-            const searchInput = document.getElementById('viewSearchInput');
-            const catSelect = document.getElementById('viewCategorySelect');
-            const statusSelect = document.getElementById('viewStatusSelect');
-
-            if (searchInput) searchInput.value = '';
-            if (catSelect) catSelect.value = '';
-            if (statusSelect) statusSelect.value = '';
-
-            viewSearchQuery = '';
-            viewCategoryFilter = '';
-            viewStatusFilter = '';
-            renderViewGames();
-        };
-
-        window.setViewMode = function(mode) {
-            currentViewMode = mode;
-            const gridBtn = document.getElementById('viewBtn-grid');
-            const listBtn = document.getElementById('viewBtn-list');
-            const gridView = document.getElementById('viewGridView');
-            const listView = document.getElementById('viewListView');
-
-            if (!gridBtn || !listBtn || !gridView || !listView) return;
-
-            if (mode === 'grid') {
-                gridBtn.className = "p-1.5 rounded-lg transition-all text-brand-700 bg-white shadow-sm border border-slate-200";
-                listBtn.className = "p-1.5 rounded-lg transition-all text-slate-500";
-                gridView.classList.remove('hidden');
-                listView.classList.add('hidden');
-            } else {
-                gridBtn.className = "p-1.5 rounded-lg transition-all text-slate-500";
-                listBtn.className = "p-1.5 rounded-lg transition-all text-brand-700 bg-white shadow-sm border border-slate-200";
-                gridView.classList.add('hidden');
-                listView.classList.remove('hidden');
-            }
-            renderViewGames();
-        };
-
         window.openDetailsModal = function(gameId) {
             const game = games.find(g => g.id === gameId);
             if (!game) return;
@@ -590,30 +553,31 @@
             document.getElementById('modalGameCode').innerText = game.code || 'CODE';
             document.getElementById('modalGameName').innerText = game.name;
             document.getElementById('modalGameCategory').innerText = game.category || '未分類領域';
-            document.getElementById('modalGamePlayers').innerText = game.players || '無限制/未設定';
-            document.getElementById('modalGameLocation').innerText = game.location || '未設定存放位置';
+            document.getElementById('modalGamePlayers').innerText = game.players || '未設定';
+            document.getElementById('modalGameLocation').innerText = game.location || '未指定存放位置';
             
-            document.getElementById('modalGameIntro').innerText = game.intro || game.note || '本學習中心目前無針對此教育桌遊的簡介說明或遊玩指南。';
+            // 四個精準的分流欄位綁定
+            document.getElementById('modalGameIntro').innerText = game.intro || '暫無簡介。';
+            document.getElementById('modalGameAccessories').innerText = game.accessories || '暫無配件清單。';
+            document.getElementById('modalGameFlow').innerText = game.flow || '暫無流程指引。';
+            document.getElementById('modalGameFeatures').innerText = game.features || '暫無特色說明。';
 
             const statusContainer = document.getElementById('modalStatusContainer');
             const statusLabel = document.getElementById('modalGameStatus');
             const returnSection = document.getElementById('modalReturnSection');
 
             const isAvailable = game.status === '可借用';
-            
             if (isAvailable) {
                 statusContainer.className = "p-4 rounded-xl border border-brand-100 bg-brand-50/40 flex items-center justify-between";
                 statusLabel.innerText = "綠色在庫 ● 可申請借閱";
                 statusLabel.className = "text-sm font-bold text-brand-700";
-                returnSection.innerHTML = `
-                    <span class="text-xs bg-brand-100 text-brand-700 px-3 py-1.5 rounded-lg font-bold">可供借出</span>
-                `;
+                returnSection.innerHTML = `<span class="text-xs bg-brand-100 text-brand-700 px-3 py-1.5 rounded-lg font-bold">可供借出</span>`;
             } else {
                 statusContainer.className = "p-4 rounded-xl border border-amber-100 bg-amber-50/30 flex items-center justify-between";
-                statusLabel.innerText = "目前已被借閱 ● 借閱中";
+                statusLabel.innerText = "已被借閱 ● 借閱中";
                 statusLabel.className = "text-sm font-bold text-amber-700";
 
-                const activeLoan = loans.find(l => l.gameId === game.id && l.status === '出借中');
+                const activeLoan = loans.find(l => l.gameCode === game.code && l.status === '出借中');
                 if (activeLoan) {
                     returnSection.innerHTML = `
                         <span class="text-[10px] text-slate-400 font-bold block">排程預計歸還</span>
@@ -621,8 +585,8 @@
                     `;
                 } else {
                     returnSection.innerHTML = `
-                        <span class="text-[10px] text-slate-400 font-bold block">預約狀態</span>
-                        <span class="text-xs font-bold text-slate-600">暫無歸還日資料</span>
+                        <span class="text-[10px] text-slate-400 font-bold block">狀態說明</span>
+                        <span class="text-xs font-bold text-slate-500">暫無排程資訊</span>
                     `;
                 }
             }
@@ -633,6 +597,26 @@
         window.closeDetailsModal = function() {
             document.getElementById('detailsModal').classList.add('hidden');
         };
+
+        // 自訂非阻塞 Toast 提示
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = "flex items-center gap-3 p-4 rounded-xl shadow-2xl bg-white border border-slate-100 modal-animate max-w-sm pointer-events-auto";
+            toast.innerHTML = `
+                <div class="flex-shrink-0 p-1.5 bg-brand-50 rounded-lg">
+                    <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <div class="text-xs sm:text-sm font-semibold text-slate-700">${message}</div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.4s';
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
 
         // 啟動連線
         startCloudSync();
