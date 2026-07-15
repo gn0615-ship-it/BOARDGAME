@@ -283,8 +283,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore as firestoreDb, doc, onSnapshot as docSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // 修正重點：必須從 firebase-firestore.js 導入 getFirestore 等資料庫專屬模組，而非錯誤地從 firebase-auth.js 導入
+        import { getFirestore, collection, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
         // 🔑 【步驟三】雲端金鑰填寫專區（請直接將您的 SDK config 物件貼入下方大括號中）
@@ -321,7 +321,7 @@
             try {
                 // RULE 3: Auth Before Queries
                 const app = initializeApp(firebaseConfig);
-                db = firestoreDb(app);
+                db = getFirestore(app);
                 const auth = getAuth(app);
 
                 const signResult = await signInAnonymously(auth);
