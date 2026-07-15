@@ -115,10 +115,12 @@
 
             <div class="flex items-center gap-2">
                 <input type="file" id="csvFileInput" accept=".csv" class="hidden" />
-                <!-- 狀態指示燈：切換雲端模式與本地離線快取模式 -->
-                <span id="syncModeIndicator" class="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span>正在偵測同步狀態...</span>
+                <button onclick="openConfigWizard()" class="text-xs text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3.5 py-1.5 rounded-full font-bold flex items-center gap-1 shadow-sm">
+                    ⚙️ 雲端金鑰設定
+                </button>
+                <span id="syncModeIndicator" class="text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                    <span>等待金鑰配置...</span>
                 </span>
             </div>
         </div>
@@ -126,12 +128,28 @@
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full space-y-6">
 
+        <!-- 未配置雲端資料庫提示區 -->
+        <div id="noConfigWarning" class="hidden p-8 bg-gradient-to-br from-slate-900 via-slate-800 to-zinc-900 border border-slate-700 rounded-3xl text-white shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8">
+            <div class="space-y-2 text-center md:text-left">
+                <h3 class="text-lg font-bold flex items-center justify-center md:justify-start gap-2">
+                    <span>🔌</span>
+                    <span>尚未串接 Google Firebase 雲端即時資料庫</span>
+                </h3>
+                <p class="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                    本系統為「純雲端發布版」。為了讓其他電腦、平板或手機在開啟唯讀端網頁時，資料能夠完全即時同步，您需要一個免費的 Google Firebase Firestore 金鑰配置。
+                </p>
+            </div>
+            <button onclick="openConfigWizard()" class="bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-2xl transition-all shadow-lg shadow-emerald-950 shrink-0">
+                🚀 立即設定雲端資料庫金鑰
+            </button>
+        </div>
+
         <!-- 數據統計板 -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="statsDashboard">
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
                 <div>
                     <p class="text-xs sm:text-sm text-slate-500 font-medium">館藏桌遊總數</p>
-                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-1" id="statTotal">0 套</h3>
+                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-1" id="statTotal">-- 套</h3>
                 </div>
                 <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
@@ -140,7 +158,7 @@
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
                 <div>
                     <p class="text-xs sm:text-sm text-slate-500 font-medium">在庫可供借閱</p>
-                    <h3 class="text-xl sm:text-2xl font-bold text-brand-600 mt-1" id="statAvailable">0 套</h3>
+                    <h3 class="text-xl sm:text-2xl font-bold text-brand-600 mt-1" id="statAvailable">-- 套</h3>
                 </div>
                 <div class="p-3 bg-brand-50 text-brand-600 rounded-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -149,7 +167,7 @@
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
                 <div>
                     <p class="text-xs sm:text-sm text-slate-500 font-medium">目前已出借</p>
-                    <h3 class="text-xl sm:text-2xl font-bold text-amber-600 mt-1" id="statBorrowed">0 套</h3>
+                    <h3 class="text-xl sm:text-2xl font-bold text-amber-600 mt-1" id="statBorrowed">-- 套</h3>
                 </div>
                 <div class="p-3 bg-amber-50 text-amber-500 rounded-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
@@ -158,7 +176,7 @@
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md" id="statOverdueWrapper">
                 <div>
                     <p class="text-xs sm:text-sm text-slate-500 font-medium" id="statOverdueLabel">逾期未歸還</p>
-                    <h3 class="text-xl sm:text-2xl font-bold mt-1 text-slate-600" id="statOverdue">0 筆</h3>
+                    <h3 class="text-xl sm:text-2xl font-bold mt-1 text-slate-600" id="statOverdue">-- 筆</h3>
                 </div>
                 <div class="p-3 rounded-xl bg-slate-50 text-slate-500" id="statOverdueBox">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -167,7 +185,6 @@
         </div>
 
         <div class="space-y-6">
-            <!-- 分頁頁籤切換 -->
             <div class="flex border-b border-slate-200 overflow-x-auto whitespace-nowrap">
                 <button onclick="switchAdminTab('dashboard')" id="tabBtn-dashboard" class="flex items-center gap-2 py-3 px-5 border-b-2 font-semibold text-sm transition-all border-brand-500 text-brand-600">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"/></svg>
@@ -175,15 +192,15 @@
                 </button>
                 <button onclick="switchAdminTab('games')" id="tabBtn-games" class="flex items-center gap-2 py-3 px-5 border-b-2 font-medium text-sm transition-all border-transparent text-slate-500 hover:text-slate-700">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                    <span>教育館藏管理 (<span id="gamesCountBadge" class="font-bold">0</span>)</span>
+                    <span>教育館藏管理 (<span id="gamesCountBadge" class="font-bold">--</span>)</span>
                 </button>
                 <button onclick="switchAdminTab('loans')" id="tabBtn-loans" class="flex items-center gap-2 py-3 px-5 border-b-2 font-medium text-sm transition-all border-transparent text-slate-500 hover:text-slate-700">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                    <span>目前出借名冊 (<span id="loansCountBadge" class="font-bold">0</span>)</span>
+                    <span>目前出借名冊 (<span id="loansCountBadge" class="font-bold">--</span>)</span>
                 </button>
                 <button onclick="switchAdminTab('history')" id="tabBtn-history" class="flex items-center gap-2 py-3 px-5 border-b-2 font-medium text-sm transition-all border-transparent text-slate-500 hover:text-slate-700">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <span>歷史紀錄存摺 (<span id="historyCountBadge" class="font-bold">0</span>)</span>
+                    <span>歷史紀錄存摺 (<span id="historyCountBadge" class="font-bold">--</span>)</span>
                 </button>
             </div>
 
@@ -193,7 +210,7 @@
                     <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
                         <div>
                             <h3 class="text-base font-bold text-slate-800 mb-4">⚡ 快捷管理中心</h3>
-                            <p class="text-xs text-slate-500 mb-6 leading-relaxed">提供日常手動建檔或快速過濾出在庫桌遊進行借出登記的捷徑。</p>
+                            <p class="text-xs text-slate-500 mb-6 leading-relaxed">提供手動建立館藏、預載模擬資料等捷徑。</p>
                             
                             <div class="space-y-3">
                                 <button onclick="openAddGameModal()" class="w-full flex items-center justify-between p-3.5 bg-brand-50 text-brand-700 rounded-xl hover:bg-brand-100 transition-colors font-medium text-sm">
@@ -212,9 +229,6 @@
                                     <span class="text-xs text-slate-400">→</span>
                                 </button>
                             </div>
-                        </div>
-                        <div class="mt-8 pt-6 border-t border-slate-100 text-center">
-                            <span class="text-[11px] text-slate-400">系統資料狀態：<span id="syncModeLabelText" class="text-amber-600 font-semibold">本地離線快取</span></span>
                         </div>
                     </div>
 
@@ -278,11 +292,11 @@
                         <div class="h-6 w-px bg-slate-200 hidden xl:block mx-1"></div>
 
                         <button onclick="clearAllLocalData()" class="bg-rose-600 hover:bg-rose-700 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1 transition-colors shadow-sm" title="完全清空館藏資料庫">
-                            <span>🗑️ 清除所有</span>
+                            <span>🗑️ 雲端全清除</span>
                         </button>
 
                         <button onclick="seedDefaultCSVData()" class="bg-amber-500 hover:bg-amber-600 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1 transition-colors shadow-sm" title="載入預設 12 筆測試桌遊">
-                            <span>💡 預載模擬</span>
+                            <span>💡 雲端預載</span>
                         </button>
 
                         <button onclick="triggerCsvUpload()" class="bg-teal-600 hover:bg-teal-700 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1 transition-colors shadow-sm" title="匯入 Excel/CSV 檔案">
@@ -321,7 +335,7 @@
             <div id="tabContent-loans" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                 <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                     <h3 class="text-base font-bold text-slate-800">📋 目前出借名冊明細</h3>
-                    <span class="text-xs bg-amber-100 text-amber-800 font-semibold px-2.5 py-1 rounded-full" id="loansTabBadge">共 0 筆</span>
+                    <span class="text-xs bg-amber-100 text-amber-800 font-semibold px-2.5 py-1 rounded-full" id="loansTabBadge">共 -- 筆</span>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -351,7 +365,7 @@
                     <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
                         <h3 class="text-base font-bold text-slate-800">📜 借閱歷史紀錄存摺</h3>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs bg-slate-200 text-slate-700 font-semibold px-2.5 py-1.5 rounded-full" id="historyTabBadge">共 0 筆</span>
+                            <span class="text-xs bg-slate-200 text-slate-700 font-semibold px-2.5 py-1.5 rounded-full" id="historyTabBadge">共 -- 筆</span>
                             <button onclick="exportHistoryToCSV()" class="flex items-center gap-1.5 text-xs text-brand-800 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3.5 py-2 rounded-xl transition-all font-semibold shadow-sm">
                                 📥 匯出歷史 CSV
                             </button>
@@ -383,6 +397,35 @@
             </div>
         </div>
     </main>
+
+    <!-- 彈出視窗：雲端設定助手 (Firebase Config Wizard) -->
+    <div id="configWizardModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden modal-animate">
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-6 text-white">
+                <h3 class="font-bold text-lg">☁️ 雲端資料庫設定助手</h3>
+                <p class="text-xs text-slate-300 mt-1">請在下方填寫您的 Firebase Web SDK 金鑰設定物件。</p>
+            </div>
+            <form onsubmit="handleSaveCloudConfig(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Firebase SDK 配置 JSON / JavaScript 對象 <span class="text-rose-500">*</span></label>
+                    <textarea id="firebaseConfigRaw" required rows="10" placeholder='例如：
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "project-id.firebaseapp.com",
+  projectId: "project-id",
+  storageBucket: "project-id.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123:web:abc"
+};' class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none bg-slate-50"></textarea>
+                    <p class="text-[10px] text-slate-400 mt-1">您可以直接將 Firebase Console 的 Web App 初始化設定整段貼入，系統將會聰明地進行自動過濾提取！</p>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeConfigWizard()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-sm transition-colors">取消</button>
+                    <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">啟用雲端即時同步</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- 彈出視窗 1：手動新增/編輯桌遊 -->
     <div id="addGameModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
@@ -555,37 +598,33 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 讀取環境變數配置
+        // 讀取系統環境變數金鑰
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'boardgame-library-default';
-        let firebaseConfig = {
-            apiKey: "",
-            authDomain: "",
-            projectId: "",
-            storageBucket: "",
-            messagingSenderId: "",
-            appId: ""
-        };
+        let firebaseConfig = null;
 
         try {
             if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                 firebaseConfig = JSON.parse(__firebase_config);
             }
         } catch (e) {
-            console.warn("無法解析雲端設定檔，將預設降級為離線本地模式。");
+            console.warn("解析 Firebase Config 失敗");
         }
 
-        // 判斷是否啟用 Firebase 雲端同步
-        let useCloud = false;
-        let db = null;
-        let auth = null;
-
-        if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.apiKey !== "") {
-            useCloud = true;
+        // 讀取本地端儲存金鑰（供未經手動打包程式直接在瀏覽器輸入的進階使用者使用）
+        if (!firebaseConfig || firebaseConfig.apiKey === "") {
+            const savedConfigStr = localStorage.getItem('user_firebase_config');
+            if (savedConfigStr) {
+                try {
+                    firebaseConfig = JSON.parse(savedConfigStr);
+                } catch(e) {
+                    console.warn("無法解析共用金鑰");
+                }
+            }
         }
 
         const MOCK_CSV_3_DATA = [
             { code: "LE-01", name: "拉密 (Rummikub)", category: "邏輯思考", players: "2-4人", location: "A區-01櫃", intro: "經典數字排列遊戲。結合了拉米紙牌與麻將玩法，考驗排列組合與邏輯思考能力，被誉為魔力橋。", components: "104張數字牌 (1-13四色各2套)、2張百搭牌、4個底架架子、繁體中文說明書。", flow: "1.每人抽14張手牌。 2.首出需符合「破冰」規則(數字總和達30分以上)。 3.後續出牌可利用桌面現有牌組拆解重組。 4.最先出完手牌者獲勝。", features: "規則好懂上手快、千變萬化無冷場、能高度鍛鍊玩家的敏捷心算與空間聯想重組力。", status: "可借用" },
-            { code: "LE-02", name: "妙語說書人 (Dixit)", category: "語言表達", players: "3-6人", location: "A區-02櫃", intro: "充滿詩意與美麗繪圖的派對遊戲。玩家需要藉由手牌意象與話語暗示進行完美的心理博弈。", components: "84張精美大插畫卡牌、36張投票紙板、6隻木製兔子計分標記、遊戲記分板。", flow: "1.每人手牌6張。 2.說書人選一張給予一組詞彙/句子提示。 3.其他人交出一張最貼切的手牌。 4.所有人混牌洗牌後投票猜測何為說書人原牌得分。", features: "語意聯想與美學思維的最佳啟盟工具、培養高度的人際同理心與故事敘述力。", status: "可借用" },
+            { code: "LE-02", name: "妙語說書人 (Dixit)", category: "語言表達", players: "3-6人", location: "A區-02櫃", intro: "充滿詩意與美麗繪圖的派對遊戲。玩家需要藉由手牌意象與話語暗示進行完美的心理博弈。", components: "84張精美大插畫卡牌、36張投票紙板、6隻木製兔子計分標記、遊戲記分板。", flow: "1.每人手牌6張。 2.說書人選一張給予一組詞彙/句子提示。 3.其他人交出一張最貼切的手牌。 4.所有人混牌洗牌後投票猜測何為說書人原牌得分。", features: "語意聯想與美學思維的最佳啟蒙工具、培養高度的人際同理心與故事敘述力。", status: "可借用" },
             { code: "LE-03", name: "閃靈快手 (Geistesblitz)", category: "反應專注", players: "2-8人", location: "B區-01櫃", intro: "大受歡迎的手腦眼協調派對遊戲。考驗大腦迴路在多重顏色與形狀干擾下的排除判斷力。", components: "5個精緻木製模型 (白幽靈、綠瓶子、紅沙發、藍書本、灰老鼠)、60張紙牌、說明書。", flow: "1.翻開一張目標卡片。 2.若卡片物件圖案顏色皆對，搶奪該模型。 3.若無完全相符者，搶奪『顏色與形狀皆沒出現』之模型。", features: "節奏超快刺激感極佳、極大化專注力與感知神經敏捷度、全齡活化大腦好幫手。", status: "可借用" },
             { code: "LE-04", name: "卡卡頌 (Carcassonne)", category: "空間策略", players: "2-5人", location: "B區-02櫃", intro: "拼圖放置遊戲代表作。玩家扮演中古世紀領主，藉由一步步建造道路、城堡、修道院，規劃壯大領土。", components: "72張版塊、40個米寶小人 (5種顏色各8個)、記分板、河流基本擴充版塊套組。", flow: "1.每回合抽取一個地理版塊貼合拼放. 2.可選擇在剛放好的版塊上派遣米寶(騎士、強盜、農夫等)。 3.地貌完成時立刻結算得分並收回米寶。", features: "基礎拼放好玩好上手、高度考驗長遠的資產管理與資源調度、輕策略深度足夠。", status: "可借用" },
             { code: "LE-05", name: "璀璨寶石 (Splendor)", category: "資源分配", players: "2-4人", location: "C區-01櫃", intro: "世界級輕策略名作。扮演文藝復興時期的富商，開採礦脈、建立店鋪與尋求貴族資助。", components: "40張發展卡、30張中階卡、20張高階卡、40個寶石籌碼Token、10張貴族瓷磚板。", flow: "1.每人回合三選一：拿寶石、保留卡、或用寶石買卡。 2.購買卡片能提供永久折扣。 3.最先累計15分獲勝。", features: "邏輯運算與資源管理練習、精美厚實的籌碼觸感。", status: "可借用" },
@@ -598,6 +637,8 @@
             { code: "LE-12", name: "平衡積木 (Jenga)", category: "肢體動覺", players: "2-8人", location: "C區-04櫃", intro: "重力與力量控制，抽積木疊到頂端不倒塌。", components: "54條原木平衡積木、說明書。", flow: "1.輪流單手抽出一根積木並疊至頂端. 2.使木塔倒塌者即輸。", features: "細微肌肉力量控管，高抗壓專注思考。", status: "可借用" }
         ];
 
+        let db = null;
+        let auth = null;
         let games = [];
         let loans = [];
         let currentAdminTab = 'dashboard'; 
@@ -612,18 +653,18 @@
 
         async function startAdminCloudSync() {
             const indicator = document.getElementById('syncModeIndicator');
-            const modeLabel = document.getElementById('syncModeLabelText');
+            const noConfigBanner = document.getElementById('noConfigWarning');
 
-            if (!useCloud) {
-                // 本地離線模式
-                indicator.className = "text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
-                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>💾 本地離線快取</span>`;
-                if (modeLabel) modeLabel.innerText = "本地離線快取";
-                loadLocalBackup();
+            if (!firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey === "") {
+                indicator.className = "text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>🔌 雲端未設定</span>`;
+                noConfigBanner.classList.remove('hidden');
+                updateAllUI();
                 return;
             }
 
             try {
+                // RULE 3: Auth Before Queries
                 const firebaseApp = initializeApp(firebaseConfig);
                 db = getFirestore(firebaseApp);
                 auth = getAuth(firebaseApp);
@@ -638,43 +679,81 @@
                 }
 
                 if (user) {
+                    // RULE 3: Authenticated completely
                     indicator.className = "text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
-                    indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>☁️ 雲端即時同步中</span>`;
-                    if (modeLabel) modeLabel.innerText = "雲端即時同步";
+                    indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>☁️ 雲端同步中</span>`;
+                    noConfigBanner.classList.add('hidden');
                     setupFirebaseListeners();
                 }
             } catch (err) {
-                console.error("Firebase 初始化失敗，安全自動降級至離線本地模式:", err);
-                useCloud = false;
-                indicator.className = "text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
-                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>💾 本地離線快取</span>`;
-                if (modeLabel) modeLabel.innerText = "本地離線快取";
-                loadLocalBackup();
+                console.error("Firebase 連線初始化失敗:", err);
+                indicator.className = "text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>⚠️ 連線崩潰</span>`;
             }
         }
 
+        window.openConfigWizard = function() {
+            document.getElementById('firebaseConfigRaw').value = firebaseConfig ? JSON.stringify(firebaseConfig, null, 2) : '';
+            document.getElementById('configWizardModal').classList.remove('hidden');
+        };
+
+        window.closeConfigWizard = function() {
+            document.getElementById('configWizardModal').classList.add('hidden');
+        };
+
+        window.handleSaveCloudConfig = function(e) {
+            e.preventDefault();
+            const raw = document.getElementById('firebaseConfigRaw').value.trim();
+            
+            try {
+                // 智慧剖析：如果使用者貼入一整段 script，提取出中間的 config JSON 物件
+                let configObj = null;
+                if (raw.includes('{') && raw.includes('}')) {
+                    const cleanJson = raw.match(/\{[\s\S]*\}/)[0];
+                    // 為了使 JavaScript object literal 格式能順利解析成 JSON，移除多餘的註解與改寫不標準的 key
+                    const normalized = cleanJson
+                        .replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1') // 去除 // 與 /* */ 註解
+                        .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')  // 將未加雙引號的 key 強制加上雙引號
+                        .replace(/'/g, '"') // 將單引號改為雙引號
+                        .replace(/,\s*([\]}])/g, '$1'); // 去除 JSON 尾端多餘逗號
+                    
+                    configObj = JSON.parse(normalized);
+                } else {
+                    configObj = JSON.parse(raw);
+                }
+
+                if (configObj && configObj.apiKey && configObj.projectId) {
+                    localStorage.setItem('user_firebase_config', JSON.stringify(configObj));
+                    closeConfigWizard();
+                    showToast("雲端金鑰配對成功！網頁即將重新整理啟用同步。");
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast("配置物件格式錯誤，缺少關鍵屬性 apiKey 或 projectId！", "error");
+                }
+            } catch(err) {
+                console.error(err);
+                showToast("解析失敗，請確認貼入的格式符合 JSON/Object 規格！", "error");
+            }
+        };
+
         function setupFirebaseListeners() {
-            // 監聽雲端即時館藏異動
+            if (!db) return;
+
+            // RULE 1: Strict Paths
             const gamesCol = collection(db, 'artifacts', appId, 'public', 'data', 'games');
+            // RULE 2: No Complex Queries. Handled locally.
             onSnapshot(gamesCol, (snapshot) => {
                 const tempGames = [];
                 snapshot.forEach(doc => {
                     tempGames.push({ ...doc.data(), id: doc.id });
                 });
-                
-                if (tempGames.length === 0) {
-                    games = [];
-                } else {
-                    games = tempGames.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-                }
-                // 備份到本地，供唯讀端載入
-                localStorage.setItem('lc_games_data', JSON.stringify(games));
+                games = tempGames.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                 updateAllUI();
             }, (err) => {
-                console.error("館藏載入失敗:", err);
+                console.error("讀取館藏發生錯誤:", err);
             });
 
-            // 監聽雲端即時借閱合約異動
+            // RULE 1: Strict Paths
             const loansCol = collection(db, 'artifacts', appId, 'public', 'data', 'loans');
             onSnapshot(loansCol, (snapshot) => {
                 const tempLoans = [];
@@ -682,26 +761,10 @@
                     tempLoans.push({ ...doc.data(), id: doc.id });
                 });
                 loans = tempLoans.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-                // 備份到本地
-                localStorage.setItem('lc_loans_data', JSON.stringify(loans));
                 updateAllUI();
             }, (err) => {
-                console.error("借閱單載入失敗:", err);
+                console.error("讀取借用紀錄發生錯誤:", err);
             });
-        }
-
-        function loadLocalBackup() {
-            const storedGames = localStorage.getItem('lc_games_data');
-            const storedLoans = localStorage.getItem('lc_loans_data');
-
-            if (!storedGames || JSON.parse(storedGames).length === 0) {
-                games = JSON.parse(JSON.stringify(MOCK_CSV_3_DATA));
-                localStorage.setItem('lc_games_data', JSON.stringify(games));
-            } else {
-                games = JSON.parse(storedGames);
-            }
-            loans = storedLoans ? JSON.parse(storedLoans) : [];
-            updateAllUI();
         }
 
         function updateAllUI() {
@@ -725,13 +788,13 @@
             const today = getTodayString();
             const overdue = loans.filter(l => l.status === '出借中' && l.dueDate < today).length;
 
-            document.getElementById('statTotal').innerText = `${total} 套`;
-            document.getElementById('statAvailable').innerText = `${available} 套`;
-            document.getElementById('statBorrowed').innerText = `${borrowed} 套`;
+            document.getElementById('statTotal').innerText = total > 0 ? `${total} 套` : '-- 套';
+            document.getElementById('statAvailable').innerText = total > 0 ? `${available} 套` : '-- 套';
+            document.getElementById('statBorrowed').innerText = total > 0 ? `${borrowed} 套` : '-- 套';
             
             const overdueEl = document.getElementById('statOverdue');
             const overdueBox = document.getElementById('statOverdueBox');
-            overdueEl.innerText = `${overdue} 筆`;
+            overdueEl.innerText = total > 0 ? `${overdue} 筆` : '-- 筆';
 
             if (overdue > 0) {
                 overdueEl.className = "text-xl sm:text-2xl font-bold mt-1 text-rose-600 animate-pulse";
@@ -1003,6 +1066,10 @@
         }
 
         window.triggerCsvUpload = function() {
+            if (!db) {
+                showToast("雲端資料庫尚未初始化，請先設定金鑰！", "error");
+                return;
+            }
             document.getElementById('csvFileInput').click();
         };
 
@@ -1010,7 +1077,7 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            showLoading("讀取檔案中", "正在為您解析並上傳資料庫...");
+            showLoading("讀取檔案中", "正在為您解析並同步上傳雲端資料庫...");
 
             const reader = new FileReader();
             reader.onload = async function(evt) {
@@ -1040,7 +1107,6 @@
                         return;
                     }
 
-                    const imported = [];
                     const promises = json.map((row, index) => {
                         const findVal = (keys) => {
                             const foundKey = Object.keys(row).find(k => {
@@ -1082,27 +1148,14 @@
                             createdAt: Date.now() + index
                         };
 
-                        imported.push(gameData);
-
-                        if (useCloud && db) {
-                            const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId);
-                            return setDoc(gameDocRef, gameData);
-                        }
-                        return null;
+                        // RULE 1: Strict Paths
+                        const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId);
+                        return setDoc(gameDocRef, gameData);
                     }).filter(p => p !== null);
 
-                    if (useCloud) {
-                        await Promise.all(promises);
-                    } else {
-                        // 本地更新
-                        const newGamesMap = new Map(games.map(g => [g.code, g]));
-                        imported.forEach(g => newGamesMap.set(g.code, g));
-                        games = Array.from(newGamesMap.values());
-                        localStorage.setItem('lc_games_data', JSON.stringify(games));
-                    }
-
+                    await Promise.all(promises);
                     hideLoading();
-                    showToast(`成功同步匯入並上傳資料庫！`);
+                    showToast(`成功同步匯入 ${promises.length} 筆至雲端資料庫！`);
                     switchAdminTab('games');
                 } catch (err) {
                     console.error("匯入失敗:", err);
@@ -1115,6 +1168,10 @@
         };
 
         window.openAddGameModal = function() {
+            if (!db) {
+                showToast("請先完成雲端金鑰連線！", "error");
+                return;
+            }
             document.getElementById('addGameForm').reset();
             document.getElementById('editingGameId').value = '';
             document.getElementById('modalAddTitle').innerText = "新增教育桌遊館藏";
@@ -1149,6 +1206,7 @@
 
         window.handleAddGame = async function(e) {
             e.preventDefault();
+            if (!db) return;
 
             const editingId = document.getElementById('editingGameId').value;
             const code = document.getElementById('newGameCode').value.trim();
@@ -1167,7 +1225,7 @@
                 return;
             }
 
-            showLoading("儲存中", "正在同步至資料庫...");
+            showLoading("儲存中", "正在同步至雲端資料庫...");
 
             const gameObj = {
                 id: code,
@@ -1186,29 +1244,18 @@
             };
 
             try {
-                if (useCloud && db) {
-                    const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', code);
-                    await setDoc(gameDocRef, gameObj);
+                // RULE 1: Strict Paths
+                const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', code);
+                await setDoc(gameDocRef, gameObj);
 
-                    if (editingId && editingId !== code) {
-                        const oldDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', editingId);
-                        await deleteDoc(oldDocRef);
-                    }
-                } else {
-                    // 本地寫入
-                    const idx = games.findIndex(g => g.id === editingId);
-                    if (idx > -1) {
-                        games[idx] = gameObj;
-                    } else {
-                        games.unshift(gameObj);
-                    }
-                    localStorage.setItem('lc_games_data', JSON.stringify(games));
-                    updateAllUI();
+                if (editingId && editingId !== code) {
+                    const oldDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', editingId);
+                    await deleteDoc(oldDocRef);
                 }
 
                 hideLoading();
                 closeAddGameModal();
-                showToast("館藏資料已成功儲存！");
+                showToast("館藏資料已成功同步儲存！");
             } catch (err) {
                 hideLoading();
                 showToast("同步失敗: " + err.message, "error");
@@ -1216,26 +1263,22 @@
         };
 
         window.handleDeleteGame = async function(id, name) {
+            if (!db) return;
             const activeLoan = loans.some(l => l.gameId === id && l.status === '出借中');
             if (activeLoan) {
                 showToast(`「${name}」目前處於出借狀態！`, 'error');
                 return;
             }
 
-            const confirmed = await customConfirm('確認刪除此項目？', `確認要將「${name}」從資料庫永久移除嗎？`);
+            const confirmed = await customConfirm('確認刪除此項目？', `確認要將「${name}」從雲端資料庫中永久移除嗎？`);
             if (confirmed) {
                 try {
-                    showLoading("刪除中", "正在從資料庫移除...");
-                    if (useCloud && db) {
-                        const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', id);
-                        await deleteDoc(gameDocRef);
-                    } else {
-                        games = games.filter(g => g.id !== id);
-                        localStorage.setItem('lc_games_data', JSON.stringify(games));
-                        updateAllUI();
-                    }
+                    showLoading("刪除中", "正在從雲端資料庫中移除...");
+                    // RULE 1: Strict Paths
+                    const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', id);
+                    await deleteDoc(gameDocRef);
                     hideLoading();
-                    showToast(`已刪除「${name}」。`);
+                    showToast(`已成功移除「${name}」。`);
                 } catch (err) {
                     hideLoading();
                     showToast("刪除失敗: " + err.message, "error");
@@ -1244,6 +1287,10 @@
         };
 
         window.triggerBorrow = function(gameId) {
+            if (!db) {
+                showToast("尚未連結雲端，無法登記！", "error");
+                return;
+            }
             const gameObj = games.find(g => g.id === gameId);
             if (!gameObj || gameObj.status !== '可借用') {
                 showToast('該桌遊目前已被借出！', 'error');
@@ -1269,7 +1316,7 @@
 
         window.handleBorrowGame = async function(e) {
             e.preventDefault();
-            if (!selectedGameForBorrow) return;
+            if (!selectedGameForBorrow || !db) return;
 
             const borrowerName = document.getElementById('borrowerName').value.trim();
             const borrowerPhone = document.getElementById('borrowerPhone').value.trim();
@@ -1278,7 +1325,7 @@
             const note = document.getElementById('borrowNote').value.trim();
 
             const loanId = `L_${Date.now()}`;
-            showLoading("借出登記中", "正在更新合約與在庫狀態...");
+            showLoading("借出登記中", "正在更新雲端合約與在庫狀態...");
 
             const loanObj = {
                 id: loanId,
@@ -1294,20 +1341,12 @@
             };
 
             try {
-                if (useCloud && db) {
-                    const loanDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'loans', loanId);
-                    await setDoc(loanDocRef, loanObj);
+                // RULE 1: Strict Paths
+                const loanDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'loans', loanId);
+                await setDoc(loanDocRef, loanObj);
 
-                    const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', selectedGameForBorrow.id);
-                    await updateDoc(gameDocRef, { status: '出借中' });
-                } else {
-                    // 本地離線
-                    loans.unshift(loanObj);
-                    games = games.map(g => g.id === selectedGameForBorrow.id ? { ...g, status: '出借中' } : g);
-                    localStorage.setItem('lc_loans_data', JSON.stringify(loans));
-                    localStorage.setItem('lc_games_data', JSON.stringify(games));
-                    updateAllUI();
-                }
+                const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', selectedGameForBorrow.id);
+                await updateDoc(gameDocRef, { status: '出借中' });
 
                 hideLoading();
                 closeBorrowModal();
@@ -1362,7 +1401,7 @@
 
         window.handleReturnGame = async function(e) {
             e.preventDefault();
-            if (!selectedLoanForReturn) return;
+            if (!selectedLoanForReturn || !db) return;
 
             const today = getTodayString();
             const noteInput = document.getElementById('returnNote').value.trim();
@@ -1374,37 +1413,23 @@
                 : `歸還物況備註: ${noteInput}`;
 
             closeReturnModal();
-            showLoading("辦理歸還中", "正在處理入庫歸檔...");
+            showLoading("辦理歸還中", "正在處理入庫歸檔與雲端備存...");
 
             try {
-                if (useCloud && db) {
-                    const loanDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'loans', targetLoanId);
-                    await updateDoc(loanDocRef, {
-                        returnDate: today,
-                        status: '已歸還',
-                        condition: selectedReturnCondition,
-                        note: updatedLoanNote
-                    });
+                // RULE 1: Strict Paths
+                const loanDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'loans', targetLoanId);
+                await updateDoc(loanDocRef, {
+                    returnDate: today,
+                    status: '已歸還',
+                    condition: selectedReturnCondition,
+                    note: updatedLoanNote
+                });
 
-                    const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', targetGameId);
-                    await updateDoc(gameDocRef, { status: '可借用' });
-                } else {
-                    // 本地離線
-                    loans = loans.map(l => l.id === targetLoanId ? {
-                        ...l,
-                        returnDate: today,
-                        status: '已歸還',
-                        condition: selectedReturnCondition,
-                        note: updatedLoanNote
-                    } : l);
-                    games = games.map(g => g.id === targetGameId ? { ...g, status: '可借用' } : g);
-                    localStorage.setItem('lc_loans_data', JSON.stringify(loans));
-                    localStorage.setItem('lc_games_data', JSON.stringify(games));
-                    updateAllUI();
-                }
+                const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', targetGameId);
+                await updateDoc(gameDocRef, { status: '可借用' });
 
                 hideLoading();
-                showToast(`館藏歸還成功！`);
+                showToast(`館藏已順利歸還雲端入庫！`);
             } catch (err) {
                 hideLoading();
                 showToast("歸還入庫失敗: " + err.message, "error");
@@ -1449,6 +1474,7 @@
         };
 
         window.clearHistoryData = async function() {
+            if (!db) return;
             if (loans.length === 0) {
                 showToast('無任何紀錄可供清除！', 'error');
                 return;
@@ -1462,29 +1488,22 @@
 
             showLoading("清理紀錄中", "正在重置借閱合約資料庫...");
             try {
-                if (useCloud && db) {
-                    const deletePromises = loans.map(l => {
-                        return deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id));
-                    });
-                    await Promise.all(deletePromises);
+                // RULE 1: Strict Paths
+                const deletePromises = loans.map(l => {
+                    return deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id));
+                });
+                await Promise.all(deletePromises);
 
-                    const gamePromises = games.map(g => {
-                        if (g.status === '出借中') {
-                            return updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', g.id), { status: '可借用' });
-                        }
-                        return null;
-                    }).filter(p => p !== null);
-                    await Promise.all(gamePromises);
-                } else {
-                    loans = [];
-                    games = games.map(g => ({ ...g, status: '可借用' }));
-                    localStorage.setItem('lc_loans_data', JSON.stringify([]));
-                    localStorage.setItem('lc_games_data', JSON.stringify(games));
-                    updateAllUI();
-                }
+                const gamePromises = games.map(g => {
+                    if (g.status === '出借中') {
+                        return updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', g.id), { status: '可借用' });
+                    }
+                    return null;
+                }).filter(p => p !== null);
+                await Promise.all(gamePromises);
 
                 hideLoading();
-                showToast("所有歷史合約紀錄已完全抹除！");
+                showToast("所有雲端歷史合約紀錄已完全抹除！");
             } catch (err) {
                 hideLoading();
                 showToast("重置失敗: " + err.message, "error");
@@ -1492,29 +1511,28 @@
         };
 
         window.seedDefaultCSVData = async function() {
-            const confirmed = await customConfirm('是否載入模擬資料？', '此操作將直接預載 12 款主打的教育級桌遊並寫入資料庫。');
+            if (!db) {
+                showToast("雲端資料庫尚未初始化，請先設定金鑰！", "error");
+                return;
+            }
+            const confirmed = await customConfirm('是否載入模擬資料？', '此操作將直接預載 12 款主打的教育級桌遊並寫入雲端 Firestore 資料庫。');
             if (!confirmed) return;
 
-            showLoading("寫入中", "正在批次同步模擬館藏...");
+            showLoading("寫入中", "正在批次同步模擬館藏至雲端...");
             try {
-                if (useCloud && db) {
-                    const promises = MOCK_CSV_3_DATA.map((g, i) => {
-                        const gameId = g.code;
-                        const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId);
-                        return setDoc(gameDocRef, {
-                            ...g,
-                            id: gameId,
-                            createdAt: Date.now() + i
-                        });
+                // RULE 1: Strict Paths
+                const promises = MOCK_CSV_3_DATA.map((g, i) => {
+                    const gameId = g.code;
+                    const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', gameId);
+                    return setDoc(gameDocRef, {
+                        ...g,
+                        id: gameId,
+                        createdAt: Date.now() + i
                     });
-                    await Promise.all(promises);
-                } else {
-                    games = JSON.parse(JSON.stringify(MOCK_CSV_3_DATA));
-                    localStorage.setItem('lc_games_data', JSON.stringify(games));
-                    updateAllUI();
-                }
+                });
+                await Promise.all(promises);
                 hideLoading();
-                showToast("成功在資料庫中預載 12 筆模擬資料！");
+                showToast("成功在雲端資料庫中同步預載 12 筆模擬資料！");
             } catch (err) {
                 hideLoading();
                 showToast("寫入失敗: " + err.message, "error");
@@ -1522,27 +1540,21 @@
         };
 
         window.clearAllLocalData = async function() {
+            if (!db) return;
             const confirmed = await customConfirm(
                 '🗑️ 確認清除所有資料？', 
-                '確認要完全抹除資料庫上的【館藏目錄】與【歷史合約紀錄】嗎？'
+                '確認要完全抹除雲端資料庫上的【館藏目錄】與【歷史合約紀錄】嗎？'
             );
             if (!confirmed) return;
 
-            showLoading("抹除資料中", "正在清空專案資料庫...");
+            showLoading("抹除資料中", "正在清空專案雲端資料庫...");
             try {
-                if (useCloud && db) {
-                    const deleteGames = games.map(g => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', g.id)));
-                    const deleteLoans = loans.map(l => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id)));
-                    await Promise.all([...deleteGames, ...deleteLoans]);
-                } else {
-                    games = [];
-                    loans = [];
-                    localStorage.setItem('lc_games_data', JSON.stringify([]));
-                    localStorage.setItem('lc_loans_data', JSON.stringify([]));
-                    updateAllUI();
-                }
+                // RULE 1: Strict Paths
+                const deleteGames = games.map(g => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', g.id)));
+                const deleteLoans = loans.map(l => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'loans', l.id)));
+                await Promise.all([...deleteGames, ...deleteLoans]);
                 hideLoading();
-                showToast("資料庫已順利清空！");
+                showToast("雲端資料庫已順利清空！");
             } catch (err) {
                 hideLoading();
                 showToast("清空失敗: " + err.message, "error");
@@ -1613,7 +1625,7 @@
             });
         }
 
-        // 綁定檔案監聽與啟動
+        // 檔案監聽與雲端初始化
         document.getElementById('csvFileInput').addEventListener('change', handleCsvImport);
         startAdminCloudSync();
     </script>

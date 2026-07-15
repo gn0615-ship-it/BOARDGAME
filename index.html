@@ -76,47 +76,59 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 </div>
                 <div>
-                    <h1 class="text-base sm:text-lg font-bold bg-gradient-to-r from-brand-600 to-teal-700 bg-clip-text text-transparent">
+                    <h1 class="text-base sm:text-lg font-bold bg-gradient-to-r from-brand-600 to-teal-700 bg-clip-text text-transparent font-sans">
                         學習中心教育桌遊館藏查詢系統
                     </h1>
                     <div class="flex items-center gap-2 mt-0.5">
                         <span class="text-[10px] text-slate-400 font-mono tracking-wider">BOARDGAME CATALOG READER</span>
-                        <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-500 text-[9px] px-2 py-0.5 rounded-full font-bold border border-slate-200">🔒 學生與教師唯讀查詢端</span>
+                        <span class="inline-flex items-center gap-1 bg-brand-50 text-brand-600 text-[9px] px-2 py-0.5 rounded-full font-bold border border-brand-200">☁️ 雲端即時連線端</span>
                     </div>
                 </div>
             </div>
 
             <div class="flex items-center gap-2">
-                <!-- 狀態指示燈：切換雲端模式與本地離線快取模式 -->
-                <span id="syncModeIndicator" class="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span>正在偵測同步狀態...</span>
+                <span id="syncModeIndicator" class="text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                    <span>等待雲端金鑰配對...</span>
                 </span>
-                <button onclick="loadLocalData(true)" class="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-2 rounded-xl transition-all font-semibold shadow-sm" title="重新整理資料">
-                    🔄 整理
-                </button>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full space-y-6">
 
+        <!-- 雲端未設定警示 -->
+        <div id="noConfigWarning" class="hidden p-6 bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700 rounded-3xl text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div class="space-y-1 text-center sm:text-left">
+                <h4 class="text-base font-bold flex items-center justify-center sm:justify-start gap-2">
+                    <span class="text-xl">🔌</span>
+                    <span>尚未配置 Firebase 雲端資料庫連結</span>
+                </h4>
+                <p class="text-xs text-slate-400">
+                    此系統為「純雲端發布版」，需要串接 Google Firestore 方能載入跨電腦一致的即時數據。請先至管理端設定金鑰。
+                </p>
+            </div>
+            <a href="admin.html" class="bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md shrink-0">
+                前往管理者主控台進行設定 ➔
+            </a>
+        </div>
+
         <!-- 導引說明橫幅 -->
-        <div class="p-4 bg-brand-50/70 border border-brand-100 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div id="cloudGuideBanner" class="hidden p-4 bg-brand-50/70 border border-brand-100 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex items-start gap-3">
                 <div class="p-1.5 bg-brand-100 rounded-lg text-brand-700 mt-0.5">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <div>
-                    <h4 class="text-sm font-semibold text-brand-900">💡 歡迎使用學習中心桌遊線上型錄</h4>
+                    <h4 class="text-sm font-semibold text-brand-900">💡 雲端即時狀態對齊中</h4>
                     <p class="text-xs text-brand-700 mt-0.5 leading-relaxed">
-                        本頁面提供即時的桌遊在庫狀態、櫃位與適用人數查詢。如需登記借閱、預約或歸還，請洽學習中心管理人員。
+                        您正處於純雲端查詢模式。當管理同仁在行政處辦理借還手續時，本畫面將會自動、無須重新整理地同步更新最新在庫情形。
                     </p>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="text-xs text-slate-400 bg-white border border-slate-100 px-2.5 py-1 rounded-xl shadow-sm" id="syncStatusTime">
-                    資料時間: --:--:--
+            <div>
+                <span class="text-xs text-brand-600 bg-brand-100 border border-brand-200 px-3 py-1 rounded-xl font-medium" id="syncStatusTime">
+                    雲端同步時間: --:--:--
                 </span>
             </div>
         </div>
@@ -125,8 +137,8 @@
         <div class="grid grid-cols-3 gap-4" id="statsDashboard">
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
                 <div>
-                    <p class="text-xs sm:text-sm text-slate-500 font-medium">館藏桌遊總數</p>
-                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-1" id="statTotal">0 套</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 font-medium">雲端館藏總數</p>
+                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-1" id="statTotal">-- 套</h3>
                 </div>
                 <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
@@ -135,7 +147,7 @@
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
                 <div>
                     <p class="text-xs sm:text-sm text-slate-500 font-medium">在庫可供借閱</p>
-                    <h3 class="text-xl sm:text-2xl font-bold text-brand-600 mt-1" id="statAvailable">0 套</h3>
+                    <h3 class="text-xl sm:text-2xl font-bold text-brand-600 mt-1" id="statAvailable">-- 套</h3>
                 </div>
                 <div class="p-3 bg-brand-50 text-brand-600 rounded-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -144,7 +156,7 @@
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
                 <div>
                     <p class="text-xs sm:text-sm text-slate-500 font-medium">目前已出借</p>
-                    <h3 class="text-xl sm:text-2xl font-bold text-amber-600 mt-1" id="statBorrowed">0 套</h3>
+                    <h3 class="text-xl sm:text-2xl font-bold text-amber-600 mt-1" id="statBorrowed">-- 套</h3>
                 </div>
                 <div class="p-3 bg-amber-50 text-amber-500 rounded-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
@@ -180,7 +192,7 @@
                 <div class="w-px h-6 bg-slate-200 hidden sm:block"></div>
 
                 <div class="flex bg-slate-100 p-1 rounded-xl">
-                    <button onclick="setViewMode('grid')" id="viewBtn-grid" class="p-1.5 rounded-lg transition-all text-brand-700 bg-white shadow-sm" title="網格卡片檢視">
+                    <button onclick="setViewMode('grid')" id="viewBtn-grid" class="p-1.5 rounded-lg transition-all text-brand-700 bg-white shadow-sm border border-slate-200" title="網格卡片檢視">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"/></svg>
                     </button>
                     <button onclick="setViewMode('list')" id="viewBtn-list" class="p-1.5 rounded-lg transition-all text-slate-500" title="條列明細檢視">
@@ -283,7 +295,7 @@
     <!-- 頁尾 -->
     <footer class="bg-white border-t border-slate-200 py-6 mt-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p class="text-xs text-slate-400">學習中心教育桌遊館藏與借閱管理系統 (唯讀檢視版) © 2026. All rights reserved.</p>
+            <p class="text-xs text-slate-400">學習中心教育桌遊館藏與借閱管理系統 (純雲端即時同步版) © 2026. All rights reserved.</p>
             <p class="text-[10px] text-slate-300 mt-1">智慧雲端即時同步資料庫 🌐 支援多裝置跨電腦即時對齊</p>
         </div>
     </footer>
@@ -293,41 +305,32 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 讀取環境變數配置
+        // 讀取全域環境配置與本地端共用雲端金鑰
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'boardgame-library-default';
-        let firebaseConfig = {
-            apiKey: "",
-            authDomain: "",
-            projectId: "",
-            storageBucket: "",
-            messagingSenderId: "",
-            appId: ""
-        };
+        let firebaseConfig = null;
 
         try {
             if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                 firebaseConfig = JSON.parse(__firebase_config);
             }
         } catch (e) {
-            console.warn("無法解析雲端設定檔，將預設降級為離線本地模式。");
+            console.warn("解析系統 Firebase 設定失敗");
         }
 
-        // 判斷是否啟用 Firebase 雲端同步
-        let useCloud = false;
+        // 嘗試讀取管理端儲存的共用金鑰配置
+        if (!firebaseConfig || firebaseConfig.apiKey === "") {
+            const savedConfigStr = localStorage.getItem('user_firebase_config');
+            if (savedConfigStr) {
+                try {
+                    firebaseConfig = JSON.parse(savedConfigStr);
+                } catch(e) {
+                    console.warn("無法解析共用金鑰");
+                }
+            }
+        }
+
         let db = null;
         let auth = null;
-
-        if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.apiKey !== "") {
-            useCloud = true;
-        }
-
-        const MOCK_CSV_3_DATA = [
-            { code: "LE-01", name: "拉密 (Rummikub)", category: "邏輯思考", players: "2-4人", location: "A區-01櫃", intro: "經典數字排列遊戲。結合了拉米紙牌與麻將玩法，考驗排列組合與邏輯思考能力，被誉為魔力橋。", components: "104張數字牌 (1-13四色各2套)、2張百搭牌、4個底架架子、繁體中文說明書。", flow: "1.每人抽14張手牌。 2.首出需符合「破冰」規則(數字總和達30分以上)。 3.後續出牌可利用桌面現有牌組拆解重組。 4.最先出完手牌者獲勝。", features: "規則好懂上手快、千變萬化無冷場、能高度鍛鍊玩家的敏捷心算與空間聯想重組力。", status: "可借用" },
-            { code: "LE-02", name: "妙語說書人 (Dixit)", category: "語言表達", players: "3-6人", location: "A區-02櫃", intro: "充滿詩意與美麗繪圖的派對遊戲。玩家需要藉由手牌意象與話語暗示進行完美的心理博弈。", components: "84張精美大插畫卡牌、36張投票紙板、6隻木製兔子計分標記、遊戲記分板。", flow: "1.每人手牌6張。 2.說書人選一張給予一組詞彙/句子提示。 3.其他人交出一張最貼切的手牌。 4.所有人混牌洗牌後投票猜測何為說書人原牌得分。", features: "語意聯想與美學思維的最佳啟蒙工具、培養高度的人際同理心與故事敘述力。", status: "可借用" },
-            { code: "LE-03", name: "閃靈快手 (Geistesblitz)", category: "反應專注", players: "2-8人", location: "B區-01櫃", intro: "大受歡迎的手腦眼協調派對遊戲。考驗大腦迴路在多重顏色與形狀干擾下的排除判斷力。", components: "5個精緻木製模型 (白幽靈、綠瓶子、紅沙發、藍書本、灰老鼠)、60張紙牌、說明書。", flow: "1.翻開一張目標卡片. 2.若卡片物件圖案顏色皆對，搶奪該模型。 3.若無完全相符者，搶奪『顏色與形狀皆沒出現』之模型。", features: "節奏超快刺激感極佳、極大化專注力與感知神經敏捷度、全齡活化大腦好幫手。", status: "可借用" },
-            { code: "LE-04", name: "卡卡頌 (Carcassonne)", category: "空間策略", players: "2-5人", location: "B區-02櫃", intro: "拼圖放置遊戲代表作。玩家扮演中古世紀領主，藉由一步步建造道路、城堡、修道院，規劃壯大領土。", components: "72張版塊、40個米寶小人 (5種顏色各8個)、記分板、河流基本擴充版塊套組。", flow: "1.每回合抽取一個地理版塊貼合拼放. 2.可選擇在剛放好的版塊上派遣米寶(騎士、強盜、農夫等)。 3.地貌完成時立刻結算得分並收回米寶。", features: "基礎拼放好玩好上手、高度考驗長遠的資產管理與資源調度、輕策略深度足夠。", status: "可借用" }
-        ];
-
         let games = [];
         let loans = [];
         let currentViewMode = 'grid'; 
@@ -336,18 +339,22 @@
         let viewCategoryFilter = '';
         let viewStatusFilter = '';
 
+        // 啟動連線
         async function startCloudSync() {
             const indicator = document.getElementById('syncModeIndicator');
+            const noConfigBanner = document.getElementById('noConfigWarning');
+            const guideBanner = document.getElementById('cloudGuideBanner');
 
-            if (!useCloud) {
-                // 本地離線模式
-                indicator.className = "text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
-                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>💾 本地離線快取</span>`;
-                loadLocalBackup();
+            if (!firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey === "") {
+                indicator.className = "text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>🔌 尚未串接雲端</span>`;
+                noConfigBanner.classList.remove('hidden');
+                guideBanner.classList.add('hidden');
                 return;
             }
 
             try {
+                // RULE 3: Auth Before Queries (開始非同步登入)
                 const firebaseApp = initializeApp(firebaseConfig);
                 db = getFirestore(firebaseApp);
                 auth = getAuth(firebaseApp);
@@ -362,40 +369,38 @@
                 }
 
                 if (user) {
+                    // RULE 3 Guard Passed
                     indicator.className = "text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
-                    indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>☁️ 雲端即時同步中</span>`;
+                    indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>☁️ 雲端同步中</span>`;
+                    noConfigBanner.classList.add('hidden');
+                    guideBanner.classList.remove('hidden');
                     setupFirebaseListeners();
                 }
             } catch (err) {
-                console.error("Firebase 初始化失敗，安全自動降級至離線本地模式:", err);
-                useCloud = false;
-                indicator.className = "text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
-                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>💾 本地離線快取</span>`;
-                loadLocalBackup();
+                console.error("Firebase 連線失敗:", err);
+                indicator.className = "text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5";
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>⚠️ 雲端連線失敗</span>`;
             }
         }
 
         function setupFirebaseListeners() {
-            // 監聽雲端館藏數據
+            if (!db) return;
+
+            // RULE 1: Strict Paths
             const gamesCol = collection(db, 'artifacts', appId, 'public', 'data', 'games');
+            // RULE 2: No Complex Queries. Fetch all, sort and filter in memory.
             onSnapshot(gamesCol, (snapshot) => {
                 const tempGames = [];
                 snapshot.forEach(doc => {
                     tempGames.push({ ...doc.data(), id: doc.id });
                 });
-                
-                if (tempGames.length === 0) {
-                    games = MOCK_CSV_3_DATA.map((g, i) => ({ ...g, id: g.code }));
-                } else {
-                    games = tempGames;
-                }
-                localStorage.setItem('lc_games_data', JSON.stringify(games));
+                games = tempGames.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                 updateUIAndTimestamp();
             }, (err) => {
-                console.error("館藏同步失敗:", err);
+                console.error("雲端館藏接收異常:", err);
             });
 
-            // 監聽雲端借閱合約數據
+            // RULE 1: Strict Paths
             const loansCol = collection(db, 'artifacts', appId, 'public', 'data', 'loans');
             onSnapshot(loansCol, (snapshot) => {
                 const tempLoans = [];
@@ -403,31 +408,17 @@
                     tempLoans.push({ ...doc.data(), id: doc.id });
                 });
                 loans = tempLoans;
-                localStorage.setItem('lc_loans_data', JSON.stringify(loans));
                 updateUIAndTimestamp();
             }, (err) => {
-                console.error("借閱合約同步失敗:", err);
+                console.error("雲端借用名單接收異常:", err);
             });
-        }
-
-        function loadLocalBackup() {
-            const storedGames = localStorage.getItem('lc_games_data');
-            const storedLoans = localStorage.getItem('lc_loans_data');
-
-            if (!storedGames || JSON.parse(storedGames).length === 0) {
-                games = MOCK_CSV_3_DATA.map((g, i) => ({ ...g, id: g.code }));
-            } else {
-                games = JSON.parse(storedGames);
-            }
-            loans = storedLoans ? JSON.parse(storedLoans) : [];
-            updateUIAndTimestamp();
         }
 
         function updateUIAndTimestamp() {
             const now = new Date();
             const timeStr = now.toTimeString().split(' ')[0];
             const syncTimeEl = document.getElementById('syncStatusTime');
-            if (syncTimeEl) syncTimeEl.innerText = `最後更新: ${timeStr}`;
+            if (syncTimeEl) syncTimeEl.innerText = `雲端同步時間: ${timeStr}`;
             updateUI();
         }
 
@@ -499,7 +490,7 @@
                 const isAvailable = game.status === '可借用';
                 const activeLoan = loans.find(l => l.gameId === game.id && l.status === '出借中');
                 const dueDateText = activeLoan ? activeLoan.dueDate : null;
-                const gameDescription = game.intro || game.note || '目前無補充說明或遊玩指南。';
+                const gameDescription = game.intro || game.note || '目前雲端無補充說明或遊玩指南。';
 
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden card-hover flex flex-col justify-between p-5";
@@ -670,41 +661,7 @@
             document.getElementById('detailsModal').classList.add('hidden');
         };
 
-        window.loadLocalData = function(manualRefresh = false) {
-            if (useCloud) {
-                startCloudSync();
-            } else {
-                loadLocalBackup();
-            }
-
-            if (manualRefresh) {
-                let container = document.getElementById('publicToastContainer');
-                if (!container) {
-                    container = document.createElement('div');
-                    container.id = 'publicToastContainer';
-                    container.className = "fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none";
-                    document.body.appendChild(container);
-                }
-
-                const toast = document.createElement('div');
-                toast.className = "flex items-center gap-3 p-4 rounded-xl shadow-2xl bg-white border border-slate-100 modal-animate max-w-sm pointer-events-auto";
-                toast.innerHTML = `
-                    <div class="flex-shrink-0 p-1.5 bg-brand-50 rounded-lg">
-                        <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                    </div>
-                    <div class="text-xs sm:text-sm font-semibold text-slate-700">🔄 資料已完成即時對齊更新！</div>
-                `;
-                container.appendChild(toast);
-
-                setTimeout(() => {
-                    toast.style.opacity = '0';
-                    toast.style.transition = 'opacity 0.4s ease';
-                    setTimeout(() => toast.remove(), 400);
-                }, 3000);
-            }
-        };
-
-        // 啟動雲端與本地同步判定
+        // 啟動連線
         startCloudSync();
     </script>
 </body>
